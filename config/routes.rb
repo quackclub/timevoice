@@ -1,4 +1,6 @@
 Rails.application.routes.draw do
+  get "up" => "rails/health#show", as: :rails_health_check
+
   use_doorkeeper do
     controllers authorizations: "oauth/authorizations"
   end
@@ -98,5 +100,4 @@ Rails.application.routes.draw do
   root "marketing#home"
   get "/:workspace_id", to: "dashboard#index", constraints: { workspace_id: /[a-zA-Z0-9]+/ }
 
-  get "up" => "rails/health#show", as: :rails_health_check
 end
