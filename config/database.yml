@@ -41,7 +41,7 @@ production:
     adapter: postgresql
     encoding: unicode
     pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
-    database: "<%= Rails.app.creds.option(:database, :cache_name, default: "#{db_name}_cache") %>"
+    database: "<%= Rails.app.creds.option(:database, :cache_name, default: Rails.app.creds.option(:database, :shared, default: false) ? db_name : "#{db_name}_cache") %>"
     username: "<%= db_username %>"
     password: "<%= db_password %>"
     host: "<%= db_host %>"
@@ -51,7 +51,7 @@ production:
     adapter: postgresql
     encoding: unicode
     pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
-    database: "<%= Rails.app.creds.option(:database, :queue_name, default: "#{db_name}_queue") %>"
+    database: "<%= Rails.app.creds.option(:database, :queue_name, default: Rails.app.creds.option(:database, :shared, default: false) ? db_name : "#{db_name}_queue") %>"
     username: "<%= db_username %>"
     password: "<%= db_password %>"
     host: "<%= db_host %>"
@@ -61,7 +61,7 @@ production:
     adapter: postgresql
     encoding: unicode
     pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
-    database: "<%= Rails.app.creds.option(:database, :cable_name, default: "#{db_name}_cable") %>"
+    database: "<%= Rails.app.creds.option(:database, :cable_name, default: Rails.app.creds.option(:database, :shared, default: false) ? db_name : "#{db_name}_cable") %>"
     username: "<%= db_username %>"
     password: "<%= db_password %>"
     host: "<%= db_host %>"
