@@ -22,8 +22,13 @@ class InvoicePdf
     build_header
     build_invoice_meta
     build_addresses
-    build_line_items_table
+    if @invoice.detailed?
+      build_timeline
+    else
+      build_line_items_table
+    end
     build_totals_section
+    build_reconciliation if @invoice.detailed? && @invoice.settings["reconciliation"]
 
     @document.render
   end
@@ -208,6 +213,161 @@ class InvoicePdf
         t.row(-1).padding_top = 10
       end
     end
+  end
+
+  KIND_LABELS = {
+    "commit" => "COMMIT", "main" => "MAIN", "merge" => "MERGE", "pr" => "PR", "reviewed" => "MERGED",
+    "branch" => "BRANCH", "deploy" => "DEPLOY", "coding" => "CODING"
+  }.freeze
+  KIND_COLORS = {
+    "commit" => "33A36B", "main" => "A633D6", "merge" => "8C6B2A", "pr" => "338EDA", "reviewed" => "0E8A8A",
+    "branch" => "5C6370", "deploy" => "F38020", "coding" => "D6336C"
+  }.freeze
+
+  def zone
+    @zone ||= ActiveSupport::TimeZone[@invoice.time_zone] || Time.zone
+  end
+
+  def build_timeline
+    @document.move_down 35
+    @document.stroke_color BORDER_COLOR
+    @document.stroke_horizontal_rule
+    @document.move_down 25
+    @document.text "Work Log", size: 14, style: :bold, color: TEXT_PRIMARY
+    @document.text "Grouped by day (#{zone.name}). Receipts sit under the time entry they happened during.",
+      size: 8, color: TEXT_MUTED
+    @document.move_down 10
+
+    @invoice.timeline_days.each do |day|
+      @document.start_new_page if @document.cursor < 90
+      @document.move_down 8
+      @document.stroke_color BORDER_COLOR
+      @document.stroke_horizontal_rule
+      @document.move_down 8
+      summary = day.entries.any? ? format_duration(day.billed_seconds) + " billed" : "no billed time"
+      summary = "#{format_duration(day.coded_seconds)} coded · #{summary}" if day.coded_seconds.positive?
+      y = @document.cursor
+      @document.text day.date.strftime("%a, %b %-d"), size: 11, style: :bold, color: day.entries.any? ? TEXT_PRIMARY : TEXT_MUTED
+      @document.draw_text summary, at: [ @document.bounds.width - @document.width_of(summary, size: 8), y - 9 ], size: 8, color: TEXT_SECONDARY
+      @document.move_down 4
+
+      day.entries.each do |w|
+        line = w.line
+        row = [
+          sanitize_text(line&.description || w.entry.description).to_s,
+          format_duration(w.entry.duration.to_i),
+          line ? format("%.2f h", line.qty_hours || 0) : "",
+          line ? format_currency(line.rate_cents) : "",
+          line ? format_currency(line.amount_cents) : ""
+        ]
+        @document.table([ row ], width: @document.bounds.width, column_widths: { 0 => @document.bounds.width * 0.52 }) do |t|
+          t.cells.border_width = 0
+          t.cells.padding = [ 4, 0, 2, 6 ]
+          t.cells.size = 9.5
+          t.column(0).font_style = :bold
+          t.column(0).padding = [ 4, 0, 2, 0 ]
+          t.columns(1..4).align = :right
+          t.column(1).text_color = TEXT_SECONDARY
+        end
+        @document.text "#{w.entry.start_at.in_time_zone(zone).strftime('%-I:%M %p')} – #{(w.entry.end_at || w.entry.start_at).in_time_zone(zone).strftime('%-I:%M %p')}#{w.entry.project ? " · #{sanitize_text(w.entry.project.name)}" : ''}",
+          size: 7.5, color: TEXT_MUTED
+        receipts(w.events)
+      end
+
+      if day.events.any?
+        @document.move_down 2
+        @document.text(day.entries.any? ? "Other activity this day" : "Activity (not billed)", size: 7.5, color: TEXT_MUTED, style: :bold)
+        receipts(day.events)
+      end
+    end
+    @document.move_down 20
+  end
+
+  def receipts(events)
+    return if events.empty?
+    rows = events.map do |e|
+      time = e.occurred_at.in_time_zone(zone).strftime("%-I:%M %p").downcase
+      ref = e.kind == "coding" ? format_duration(e.duration_seconds.to_i) : e.short_ref.to_s
+      [ time, KIND_LABELS[e.kind], ref, receipt_text(e) ]
+    end
+    @document.indent(10) do
+      @document.table(rows, width: @document.bounds.width, column_widths: { 0 => 46, 1 => 46, 2 => 50 }) do |t|
+        t.cells.border_width = 0
+        t.cells.padding = [ 1.5, 4, 1.5, 0 ]
+        t.cells.size = 7.5
+        t.column(0).text_color = TEXT_MUTED
+        t.column(1).font_style = :bold
+        t.column(1).size = 6.5
+        events.each_with_index do |e, i|
+          t.row(i).column(1).text_color = KIND_COLORS[e.kind]
+          t.row(i).column(2).text_color = KIND_COLORS[e.kind]
+        end
+        t.column(3).text_color = TEXT_PRIMARY
+      end
+    end
+    @document.move_down 4
+  end
+
+  def receipt_text(e)
+    m = e.metadata || {}
+    repo = m["repo"].to_s.split("/").last
+    text = case e.kind
+    when "pr" then "opened: #{e.title}"
+    when "commit" then "#{e.title}  (#{repo} · in ##{Array(m['prs']).join(' #')})"
+    when "merge" then "#{e.title}  (#{repo} · squash-merge of ##{Array(m['prs']).join(' #')})"
+    when "main" then "#{e.title}  (#{repo} · direct to default branch)"
+    when "reviewed" then "reviewed & merged: #{e.title}  (opened by @#{m['opened_by']})"
+    when "branch" then "new branch #{e.title}  (#{m['repo']}#{m['times'].to_i > 1 ? " · ×#{m['times']}" : ''})"
+    when "deploy" then "#{e.title}  (version #{e.ref.to_s[0, 8]})"
+    when "coding" then "#{e.occurred_at.in_time_zone(zone).strftime('%-I:%M %p').downcase} – #{e.ended_at&.in_time_zone(zone)&.strftime('%-I:%M %p')&.downcase} · #{m['heartbeats']} heartbeats#{m['top_files'].present? ? " · #{Array(m['top_files']).join(', ')}" : ''}"
+    else e.title
+    end
+    sanitize_text(text).to_s
+  end
+
+  def build_reconciliation
+    est = @invoice.estimates
+    @document.start_new_page
+    @document.text "Time reconciliation", size: 14, style: :bold, color: TEXT_PRIMARY
+    @document.text "Billed time compared with three independent estimates from the receipts above.", size: 9, color: TEXT_SECONDARY
+    @document.move_down 12
+    t = est[:totals]
+    pct = ->(v) { t[:billed].positive? ? " (#{(v * 100.0 / t[:billed]).round}%)" : "" }
+    rows = [
+      [ "Billed", format_duration(t[:billed]), "Sum of billed time entries" ],
+      [ "A · Item weights", format_duration(t[:items]) + pct.(t[:items]), "Each commit, PR, branch, deploy and review gets a time cost; commits scale with lines changed" ],
+      [ "B · Activity sessions", format_duration(t[:sessions]) + pct.(t[:sessions]), "Events within #{est[:weights][:session_gap]} min are one session, plus #{est[:weights][:lead_in]} min lead-in" ],
+      [ "C · Hackatime coded", format_duration(t[:coded]) + pct.(t[:coded]), "Editor and terminal heartbeats only" ]
+    ]
+    @document.table(rows, width: @document.bounds.width, column_widths: { 0 => 120, 1 => 90 }) do |tb|
+      tb.cells.border_width = 0
+      tb.cells.padding = [ 5, 6, 5, 0 ]
+      tb.cells.size = 9
+      tb.column(0).font_style = :bold
+      tb.column(2).text_color = TEXT_SECONDARY
+      tb.rows(0..-1).border_bottom_width = 0.5
+      tb.rows(0..-1).border_bottom_color = BORDER_COLOR
+    end
+    @document.move_down 16
+    day_rows = [ [ "Day", "Billed", "A · items", "B · sessions", "C · coded" ] ] +
+      est[:days].map { |d| [ Date.parse(d[:date]).strftime("%a %b %-d"), *[ d[:billed], d[:items], d[:sessions], d[:coded] ].map { |v| v.positive? ? format_duration(v) : "—" } ] }
+    @document.table(day_rows, width: @document.bounds.width, header: true) do |tb|
+      tb.cells.border_width = 0
+      tb.cells.padding = [ 3, 6, 3, 0 ]
+      tb.cells.size = 8.5
+      tb.row(0).font_style = :bold
+      tb.row(0).text_color = TEXT_SECONDARY
+      tb.row(0).border_bottom_width = 1
+      tb.row(0).border_bottom_color = BORDER_COLOR
+      tb.columns(1..4).align = :right
+    end
+  end
+
+  def format_duration(seconds)
+    seconds = seconds.to_i
+    h, rem = seconds.divmod(3600)
+    m = rem / 60
+    h.positive? ? format("%d:%02d", h, m) : "0:#{format('%02d', m)}"
   end
 
   def format_currency(cents)

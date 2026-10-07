@@ -10,8 +10,8 @@ class InvoicesController < ApplicationController
   }
   verify_turnstile_request only: [ :send_email ]
 
-  before_action :set_invoice, only: [ :show, :update, :destroy, :pdf, :csv, :send_email ]
-  before_action :authorize_invoice, only: [ :create, :update, :destroy, :send_email ]
+  before_action :set_invoice, only: [ :show, :update, :destroy, :pdf, :csv, :send_email, :refresh_activity ]
+  before_action :authorize_invoice, only: [ :create, :update, :destroy, :send_email, :refresh_activity ]
   before_action :authorize_invoice_show, only: [ :show, :pdf, :csv ]
 
   def index
@@ -37,7 +37,7 @@ class InvoicesController < ApplicationController
       invoices: @invoices.map { |invoice|
         invoice.as_json(
           only: [ :id, :invoice_number, :status, :total_cents, :period_start, :period_end, :issued_on ],
-          methods: [ :hashid ],
+          methods: [ :hashid, :settings ],
           include: {
             client: { only: [ :id, :name ] },
             invoice_lines: { only: [ :id, :description, :qty_hours, :amount_cents ] }
@@ -60,6 +60,8 @@ class InvoicesController < ApplicationController
            hours: entry.duration_hours
          )
        },
+      invoiceOptionDefaults: Invoice::OPTION_DEFAULTS.merge("layout" => "detailed"),
+      receiptKinds: ActivityEvent::KINDS,
       invoiceSettings: {
         billable_rate_cents: @invoice_settings.billable_rate_cents,
         sender_name: @invoice_settings.sender_name,
@@ -69,10 +71,16 @@ class InvoicesController < ApplicationController
   end
 
   def show
+    detailed = @invoice.detailed?
+    days = detailed ? @invoice.timeline_days : []
     render inertia: "Invoices/Show", props: {
+      timeline: days.map { |d| Activity::Presenter.day(d) },
+      estimates: detailed && @invoice.settings["reconciliation"] ? @invoice.estimates : nil,
+      receiptKinds: ActivityEvent::KINDS,
+      timezone: @invoice.time_zone,
       invoice: @invoice.as_json(
         only: [ :id, :invoice_number, :status, :total_cents, :period_start, :period_end, :issued_on ],
-        methods: [ :hashid ],
+        methods: [ :hashid, :settings ],
         include: {
           client: { only: [ :id, :name, :billing_address ] },
           invoice_lines: { only: [ :id, :description, :qty_hours, :rate_cents, :amount_cents ] }
@@ -116,11 +124,18 @@ class InvoicesController < ApplicationController
       start_date,
       end_date,
       rate_cents,
-      current_user
+      current_user,
+      invoice_options_params
     )
 
     if invoice.nil?
       redirect_to invoices_path, alert: "No unbilled entries found for this client in the selected date range."
+      return
+    end
+
+    if invoice.detailed?
+      enqueue_activity_sync(invoice)
+      redirect_to invoice_path(current_workspace.hashid, invoice.hashid), notice: "Invoice ##{invoice.invoice_number} created. Importing git, deploy and Hackatime receipts in the background."
       return
     end
 
@@ -132,6 +147,16 @@ class InvoicesController < ApplicationController
   end
 
   def update
+    if params.dig(:invoice, :options)
+      @invoice.options = @invoice.settings.merge(Invoice.normalize_options(invoice_options_params))
+      if @invoice.save
+        redirect_to invoice_path(current_workspace.hashid, @invoice.hashid), notice: "Invoice options updated."
+      else
+        redirect_to invoice_path(current_workspace.hashid, @invoice.hashid), alert: @invoice.errors.full_messages.join(", ")
+      end
+      return
+    end
+
     if params.dig(:invoice, :status) == "issued" && @invoice.issued_on.nil?
       @invoice.issued_on = Date.current
     end
@@ -183,6 +208,11 @@ class InvoicesController < ApplicationController
       disposition: "attachment"
   end
 
+  def refresh_activity
+    enqueue_activity_sync(@invoice)
+    redirect_to invoice_path(current_workspace.hashid, @invoice.hashid), notice: "Re-importing receipts for this invoice period. Refresh in a minute."
+  end
+
   def send_email
     recipients = email_params[:recipients].to_s.split(/[,;\s]+/).map(&:strip).reject(&:blank?)
     cc = email_params[:cc_self] == "true" ? [ current_user.email ] : []
@@ -227,6 +257,17 @@ class InvoicesController < ApplicationController
 
   def invoice_create_params
     optional_params(:invoice, :client_id, :period_start, :period_end, :rate_cents)
+  end
+
+  def enqueue_activity_sync(invoice)
+    range = invoice.period_range
+    SyncActivityJob.perform_later(workspace_id: current_workspace.id, user_id: current_user.id, from: range.first.iso8601, to: range.last.iso8601)
+  end
+
+  def invoice_options_params
+    raw = params.dig(:invoice, :options)
+    return {} unless raw.respond_to?(:permit)
+    raw.permit(:layout, :match, :show_activity_only_days, :reconciliation, receipt_kinds: []).to_h
   end
 
   def invoice_params

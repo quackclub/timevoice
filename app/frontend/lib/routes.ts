@@ -56,10 +56,17 @@ export const routes = {
       `/${workspaceId}/invoices/${id}/csv`,
     sendEmail: (workspaceId: string, id: string) =>
       `/${workspaceId}/invoices/${id}/send_email`,
+    refreshActivity: (workspaceId: string, id: string) =>
+      `/${workspaceId}/invoices/${id}/refresh_activity`,
   },
 
   reports: {
     index: (workspaceId: string) => `/${workspaceId}/reports`,
+  },
+
+  activity: {
+    index: (workspaceId: string) => `/${workspaceId}/activity`,
+    sync: (workspaceId: string) => `/${workspaceId}/activity/sync`,
   },
 
   settings: {
@@ -67,6 +74,10 @@ export const routes = {
     workspace: (workspaceId: string) => `/${workspaceId}/settings/workspace`,
     billing: (workspaceId: string) => `/${workspaceId}/settings/billing`,
     developer: (workspaceId: string) => `/${workspaceId}/settings/developer`,
+    integrations: (workspaceId: string) =>
+      `/${workspaceId}/settings/integrations`,
+    connectIntegration: (workspaceId: string, provider: string) =>
+      `/${workspaceId}/settings/integrations/${provider}/connect`,
     updateWorkspace: (workspaceId: string) =>
       `/${workspaceId}/settings/workspace`,
     deleteWorkspace: (workspaceId: string) =>
@@ -111,6 +122,8 @@ export const routes = {
 
   auth: {
     google: "/auth/google_oauth2",
+    provider: (provider: string) => `/auth/${provider}`,
+    disconnect: (provider: string) => `/auth/${provider}`,
     logout: "/signout",
     signin: "/signin",
   },

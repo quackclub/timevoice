@@ -39,7 +39,8 @@ Rails.application.routes.draw do
   get "/home", to: "marketing#home", as: :marketing_home
   get "/signin", to: "sessions#new", as: :signin
   delete "/signout", to: "sessions#destroy", as: :signout
-  get "/auth/google_oauth2/callback", to: "sessions#create"
+  get "/auth/:provider/callback", to: "sessions#create", constraints: { provider: /google_oauth2|github|hackclub|hackatime/ }
+  delete "/auth/:provider", to: "sessions#disconnect", as: :disconnect_identity
   get "/auth/failure", to: "sessions#failure"
 
   get "/invite/:token", to: "invites#show", as: :invite
@@ -58,6 +59,10 @@ Rails.application.routes.draw do
     get "/settings/billing", to: "settings#billing"
     patch "/settings/billing", to: "settings#update_billing"
     get "/settings/developer", to: "oauth_applications#index", as: :settings_developer
+    get "/settings/integrations", to: "integrations#show", as: :settings_integrations
+    post "/settings/integrations/:provider/connect", to: "integrations#connect", as: :connect_integration
+    get "/activity", to: "activity#index", as: :activity
+    post "/activity/sync", to: "activity#sync", as: :sync_activity
     resources :oauth_applications, only: [ :create, :update, :destroy ], path: "settings/developer/applications" do
       member do
         post :regenerate_secret
@@ -82,6 +87,7 @@ Rails.application.routes.draw do
         get :pdf
         get :csv
         post :send_email
+        post :refresh_activity
       end
     end
   end
