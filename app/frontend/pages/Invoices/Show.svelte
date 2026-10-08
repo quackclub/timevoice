@@ -31,7 +31,6 @@
   } from "../../components/invoice/InvoiceOptionsFields.svelte";
   import {
     formatClock,
-    formatMinutes,
     type Estimates,
     type TimelineDay,
   } from "../../lib/activity";
@@ -316,7 +315,8 @@
             role="menu"
           >
             <a
-              href={routes.invoices.pdf(workspaceId, invoice.hashid)}
+              href={routes.invoices.pdf(workspaceId, invoice.hashid) +
+                "?reconciliation=0"}
               target="_blank"
               role="menuitem"
               class="flex items-center gap-2 px-4 py-2.5 text-sm text-fg-primary transition-[background-color,box-shadow,transform] duration-150 hover:bg-gradient-to-b hover:from-white/[0.06] hover:to-transparent active:scale-[0.985]"
@@ -325,6 +325,19 @@
               <FileText class="w-4 h-4" aria-hidden="true" />
               Download PDF
             </a>
+            {#if invoice.settings.layout === "detailed"}
+              <a
+                href={routes.invoices.pdf(workspaceId, invoice.hashid) +
+                  "?reconciliation=1"}
+                target="_blank"
+                role="menuitem"
+                class="flex items-center gap-2 px-4 py-2.5 text-sm text-fg-primary transition-[background-color,box-shadow,transform] duration-150 hover:bg-gradient-to-b hover:from-white/[0.06] hover:to-transparent active:scale-[0.985]"
+                onclick={() => (downloadMenuOpen = false)}
+              >
+                <FileText class="w-4 h-4" aria-hidden="true" />
+                PDF + time reconciliation
+              </a>
+            {/if}
             <a
               href={routes.invoices.csv(workspaceId, invoice.hashid)}
               role="menuitem"
@@ -471,11 +484,6 @@
                 {dayLabel(day.date)}
               </h4>
               <span class="text-xs text-fg-muted font-tabular">
-                {#if day.coded_seconds > 0}
-                  <span style="color: #d6336c"
-                    >{formatMinutes(day.coded_seconds)} coded</span
-                  > ·
-                {/if}
                 {day.entries.length
                   ? `${formatClock(day.billed_seconds)} billed`
                   : "no billed time"}

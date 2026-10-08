@@ -179,7 +179,8 @@ class InvoicesController < ApplicationController
   def pdf
     invoice_setting = current_workspace.invoice_setting
 
-    pdf = ::InvoicePdf.new(@invoice, invoice_setting).generate
+    reconciliation = params.key?(:reconciliation) ? ActiveModel::Type::Boolean.new.cast(params[:reconciliation]) : nil
+    pdf = ::InvoicePdf.new(@invoice, invoice_setting, reconciliation: reconciliation).generate
 
     client_name = @invoice.client.name
     date_range = "#{@invoice.period_start.strftime('%b %d, %Y')} - #{@invoice.period_end.strftime('%b %d, %Y')}"

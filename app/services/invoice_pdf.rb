@@ -8,9 +8,11 @@ class InvoicePdf
   TEXT_MUTED = "999999"
   BORDER_COLOR = "EEEEEE"
 
-  def initialize(invoice, invoice_setting)
+  # reconciliation: nil follows the invoice's own option; true/false overrides it for this export.
+  def initialize(invoice, invoice_setting, reconciliation: nil)
     @invoice = invoice
     @invoice_setting = invoice_setting
+    @reconciliation = reconciliation.nil? ? @invoice.settings["reconciliation"] : reconciliation
     @document = Prawn::Document.new(
       page_size: "A4",
       margin: [ 60, 60, 60, 60 ]
@@ -28,7 +30,7 @@ class InvoicePdf
       build_line_items_table
     end
     build_totals_section
-    build_reconciliation if @invoice.detailed? && @invoice.settings["reconciliation"]
+    build_reconciliation if @invoice.detailed? && @reconciliation
 
     @document.render
   end
@@ -255,7 +257,6 @@ class InvoicePdf
       @document.stroke_horizontal_rule
       @document.move_down 8
       summary = day.entries.any? ? format_duration(day.billed_seconds) + " billed" : "no billed time"
-      summary = "#{format_minutes(day.coded_seconds)} coded · #{summary}" if day.coded_seconds.positive?
       y = @document.cursor
       @document.text day.date.strftime("%a, %b %-d"), size: 11, style: :bold, color: day.entries.any? ? TEXT_PRIMARY : TEXT_MUTED
       @document.draw_text summary, at: [ @document.bounds.width - @document.width_of(summary, size: 8), y - 9 ], size: 8, color: TEXT_SECONDARY

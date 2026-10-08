@@ -21,4 +21,12 @@ class InvoiceSenderTest < ActiveSupport::TestCase
     assert_equal({ name: "Mat Manna", email: "invoices@example.com", address: "1 Main St" }, @invoice.reload.sender)
     assert InvoicePdf.new(@invoice, setting).generate.start_with?("%PDF")
   end
+
+  test "export can include or leave out the reconciliation page" do
+    @invoice.update!(options: { "layout" => "detailed", "reconciliation" => false })
+    pages = ->(reconciliation) { InvoicePdf.new(@invoice, nil, reconciliation: reconciliation).generate.scan(%r{/Type /Page\b}).size }
+
+    assert_equal pages.(nil), pages.(false)
+    assert_equal pages.(false) + 1, pages.(true)
+  end
 end
