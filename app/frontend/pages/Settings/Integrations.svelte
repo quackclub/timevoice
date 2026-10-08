@@ -97,15 +97,8 @@
               {/if}
             </p>
           </div>
-          <div class="shrink-0">
-            {#if identity.connected}
-              <Button
-                variant="secondary"
-                onclick={() => disconnect(identity.provider)}
-              >
-                Disconnect
-              </Button>
-            {:else if identity.available}
+          <div class="shrink-0 flex items-center gap-2">
+            {#if identity.available}
               <form
                 action={routes.settings.connectIntegration(
                   workspaceId,
@@ -118,8 +111,22 @@
                   name="authenticity_token"
                   value={$page.props.csrf_token as string}
                 />
-                <Button tone="purple" type="submit">Connect</Button>
+                <Button
+                  tone={identity.connected ? undefined : "purple"}
+                  variant={identity.connected ? "secondary" : undefined}
+                  type="submit"
+                >
+                  {identity.connected ? "Reconnect" : "Connect"}
+                </Button>
               </form>
+            {/if}
+            {#if identity.connected}
+              <Button
+                variant="secondary"
+                onclick={() => disconnect(identity.provider)}
+              >
+                Disconnect
+              </Button>
             {/if}
           </div>
         </li>
