@@ -4,7 +4,7 @@ class Project < ApplicationRecord
   has_many :time_entries, dependent: :nullify
   has_many :activity_events, dependent: :delete_all
 
-  LIST_FIELDS = %i[github_repos hackatime_projects hackatime_catchall_projects cloudflare_workers].freeze
+  LIST_FIELDS = %i[github_repos hackatime_projects hackatime_catchall_projects cloudflare_workers vercel_projects].freeze
 
   validates :name, presence: true, uniqueness: { scope: :workspace_id }
   validates :color, presence: true, format: { with: /\A#[0-9A-Fa-f]{6}\z/ }

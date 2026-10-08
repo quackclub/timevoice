@@ -19,6 +19,7 @@
     github_token: boolean;
     hackatime_api_key: boolean;
     cloudflare: boolean;
+    vercel: boolean;
   };
 
   const workspaceId = $derived($page.props.auth?.workspace?.hashid);
@@ -29,6 +30,7 @@
       github_token: false,
       hackatime_api_key: false,
       cloudflare: false,
+      vercel: false,
     },
   );
 
@@ -47,6 +49,11 @@
       key: "CLOUDFLARE_API_TOKEN + CLOUDFLARE_ACCOUNT_ID",
       active: server.cloudflare,
       text: "Imports Cloudflare Worker deploys for the Workers listed on each project.",
+    },
+    {
+      key: "VERCEL_TOKEN (+ VERCEL_TEAM_ID)",
+      active: server.vercel,
+      text: "Imports Vercel deployments for the Vercel projects listed on each project. Set VERCEL_TEAM_ID when the projects belong to a team.",
     },
   ]);
 

@@ -24,7 +24,8 @@ class IntegrationsController < ApplicationController
       server: {
         github_token: ENV["GITHUB_TOKEN"].present?,
         hackatime_api_key: ENV["HACKATIME_API_KEY"].present? && ENV["HACKATIME_API_KEY_EMAIL"].to_s.casecmp?(current_user.email),
-        cloudflare: ENV["CLOUDFLARE_API_TOKEN"].present? && ENV["CLOUDFLARE_ACCOUNT_ID"].present?
+        cloudflare: ENV["CLOUDFLARE_API_TOKEN"].present? && ENV["CLOUDFLARE_ACCOUNT_ID"].present?,
+        vercel: ENV["VERCEL_TOKEN"].present?
       }
     }
   end

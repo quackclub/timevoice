@@ -29,6 +29,7 @@
     hackatime_projects?: string | null;
     hackatime_catchall_projects?: string | null;
     cloudflare_workers?: string | null;
+    vercel_projects?: string | null;
     activity_synced_at?: string | null;
     activity_sync_error?: string | null;
   };
@@ -38,6 +39,7 @@
     ["hackatime_projects", "Hackatime project"],
     ["hackatime_catchall_projects", "catch-all"],
     ["cloudflare_workers", "Worker"],
+    ["vercel_projects", "Vercel project"],
   ] as const;
 
   function listCount(value: string | null | undefined): number {
@@ -75,6 +77,7 @@
     hackatime_projects: "",
     hackatime_catchall_projects: "",
     cloudflare_workers: "",
+    vercel_projects: "",
     name: "",
     client_id: "",
     color: ($page.props.colors as string[])?.[0] ?? "",
@@ -86,6 +89,7 @@
     hackatime_projects: "",
     hackatime_catchall_projects: "",
     cloudflare_workers: "",
+    vercel_projects: "",
     name: "",
     client_id: "",
     color: "",
@@ -103,6 +107,7 @@
     $editForm.hackatime_catchall_projects =
       project.hackatime_catchall_projects || "";
     $editForm.cloudflare_workers = project.cloudflare_workers || "";
+    $editForm.vercel_projects = project.vercel_projects || "";
   }
 
   function cancelEditing() {
@@ -195,6 +200,7 @@
           $createForm.hackatime_catchall_projects
         }
         bind:cloudflare_workers={$createForm.cloudflare_workers}
+        bind:vercel_projects={$createForm.vercel_projects}
       />
 
       <div class="flex items-center justify-between">
@@ -272,6 +278,7 @@
                   $editForm.hackatime_catchall_projects
                 }
                 bind:cloudflare_workers={$editForm.cloudflare_workers}
+                bind:vercel_projects={$editForm.vercel_projects}
               />
 
               <div class="flex items-center justify-between">

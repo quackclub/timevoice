@@ -8,6 +8,7 @@
     hackatime_projects?: string;
     hackatime_catchall_projects?: string;
     cloudflare_workers?: string;
+    vercel_projects?: string;
   }
 
   let {
@@ -16,6 +17,7 @@
     hackatime_projects = $bindable(""),
     hackatime_catchall_projects = $bindable(""),
     cloudflare_workers = $bindable(""),
+    vercel_projects = $bindable(""),
   }: Props = $props();
 </script>
 
@@ -89,6 +91,22 @@
           rows={2}
           bind:value={cloudflare_workers}
           placeholder="indigest"
+          aria-describedby={describedBy}
+        />
+      {/snippet}
+    </FormField>
+    <FormField
+      id="{idPrefix}-vercel"
+      label="Vercel projects"
+      description="One Vercel project name per line. Your deploys (and deploys of your commits) become receipts."
+    >
+      {#snippet children({ describedBy })}
+        <TextArea
+          id="{idPrefix}-vercel"
+          tone="green"
+          rows={2}
+          bind:value={vercel_projects}
+          placeholder="slacker-news"
           aria-describedby={describedBy}
         />
       {/snippet}

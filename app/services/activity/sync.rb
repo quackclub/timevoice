@@ -2,7 +2,7 @@ module Activity
   class Sync
     class SkipSource < StandardError; end
 
-    SOURCES = [ GithubSync, HackatimeSync, CloudflareSync ].freeze
+    SOURCES = [ GithubSync, HackatimeSync, CloudflareSync, VercelSync ].freeze
 
     Result = Struct.new(:imported, :skipped, :errors, keyword_init: true)
 

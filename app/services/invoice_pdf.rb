@@ -318,7 +318,9 @@ class InvoicePdf
     when "main" then "#{e.title}  (#{repo} · direct to default branch)"
     when "reviewed" then "reviewed & merged: #{e.title}  (opened by @#{m['opened_by']})"
     when "branch" then "new branch #{e.title}  (#{m['repo']}#{m['times'].to_i > 1 ? " · ×#{m['times']}" : ''})"
-    when "deploy" then "#{e.title}  (version #{e.ref.to_s[0, 8]})"
+    when "deploy"
+      detail = m["provider"] == "vercel" ? [ m["branch"], m["commit_sha"], m["state"]&.downcase ].compact.join(" · ") : "version #{e.ref.to_s[0, 8]}"
+      "#{e.title}  (#{detail})"
     when "coding" then "#{e.occurred_at.in_time_zone(zone).strftime('%-I:%M %p').downcase} – #{e.ended_at&.in_time_zone(zone)&.strftime('%-I:%M %p')&.downcase} · #{m['heartbeats']} heartbeats#{m['top_files'].present? ? " · #{Array(m['top_files']).join(', ')}" : ''}"
     else e.title
     end

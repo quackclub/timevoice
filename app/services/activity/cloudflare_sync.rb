@@ -30,7 +30,7 @@ module Activity
             recorder.record(kind: "deploy", external_id: v["id"], occurred_at: at,
               title: "Deploy #{worker}", ref: v["id"],
               url: "https://dash.cloudflare.com/#{account}/workers/services/view/#{worker}/production/deployments",
-              metadata: { worker: worker, source: v.dig("metadata", "source"), author_email: v.dig("metadata", "author_email"),
+              metadata: { provider: "cloudflare", worker: worker, source: v.dig("metadata", "source"), author_email: v.dig("metadata", "author_email"),
                           message: v.dig("annotations", "workers/message") })
           end
           break if items.size < 100 || page >= 10

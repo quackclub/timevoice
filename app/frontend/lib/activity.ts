@@ -103,7 +103,11 @@ export function receiptDetail(e: ActivityEvent): string {
     case "branch":
       return `${m.repo}${m.times > 1 ? ` · created ×${m.times}` : ""}`;
     case "deploy":
-      return `${m.worker} · version ${e.ref ?? ""}`;
+      return m.provider === "vercel"
+        ? ["vercel", m.branch, m.commit_sha, m.state?.toLowerCase()]
+            .filter(Boolean)
+            .join(" · ")
+        : `cloudflare · ${m.worker} · version ${e.ref ?? ""}`;
     case "coding":
       return `hackatime · ${m.heartbeats} heartbeats${m.via_catchall ? ` · ${m.via_catchall} via catch-all (filename match)` : ""}${m.top_files?.length ? ` · ${m.top_files.join(", ")}` : ""}`;
     default:
