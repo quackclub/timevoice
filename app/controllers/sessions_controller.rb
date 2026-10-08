@@ -1,17 +1,35 @@
 class SessionsController < ApplicationController
   skip_before_action :authenticate_user!, only: [ :new, :create, :failure ]
-  skip_before_action :require_workspace, only: [ :new, :create, :failure, :destroy ]
+  skip_before_action :require_workspace, only: [ :new, :create, :failure, :destroy, :disconnect ]
 
   layout "auth"
 
+  CONNECT_ONLY_PROVIDERS = %w[hackatime].freeze
+
   def new
     redirect_to root_path if current_user
-    render inertia: "Sessions/New"
+    render inertia: "Sessions/New", props: { providers: AuthProviders.sign_in_options }
   end
 
   def create
     auth = request.env["omniauth.auth"]
-    user = User.from_omniauth(auth)
+
+    if current_user
+      connect_identity(auth)
+      return
+    end
+
+    if CONNECT_ONLY_PROVIDERS.include?(auth.provider)
+      redirect_to signin_path, alert: "Sign in first, then connect #{auth.provider} from settings."
+      return
+    end
+
+    begin
+      user = User.from_omniauth(auth)
+    rescue User::EmailTakenError, ArgumentError, ActiveRecord::RecordInvalid => e
+      redirect_to signin_path, alert: e.message
+      return
+    end
     user.create_default_workspace if user.workspaces.empty?
 
     session[:user_id] = user.id
@@ -39,7 +57,26 @@ class SessionsController < ApplicationController
     inertia_location signin_path
   end
 
+  def disconnect
+    identity = current_user.identities.find_by!(provider: params[:provider])
+    if current_user.identities.where(provider: AuthProviders::SIGN_IN.keys).where.not(id: identity.id).none? && AuthProviders::SIGN_IN.key?(identity.provider)
+      redirect_back fallback_location: root_path, alert: "You need at least one sign-in method."
+      return
+    end
+    identity.destroy
+    redirect_back fallback_location: root_path, notice: "Disconnected #{identity.provider}."
+  end
+
   def failure
     redirect_to signin_path, alert: "Authentication failed. Please try again."
+  end
+
+  private
+
+  def connect_identity(auth)
+    current_user.connect_identity!(auth)
+    redirect_to session.delete(:connect_return_to) || root_path, notice: "Connected #{auth.provider}."
+  rescue ActiveRecord::RecordNotUnique, ActiveRecord::RecordInvalid => e
+    redirect_to session.delete(:connect_return_to) || root_path, alert: e.message
   end
 end

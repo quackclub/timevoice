@@ -9,11 +9,11 @@ module Api
       def index
         clients = current_workspace.clients.order(:name)
 
-        render json: clients.as_json(only: [ :id, :name, :billing_address ])
+        render json: clients.as_json(only: [ :id, :name, :billing_address, :manager ])
       end
 
       def show
-        render json: @client.as_json(only: [ :id, :name, :billing_address ])
+        render json: @client.as_json(only: [ :id, :name, :billing_address, :manager ])
       end
 
       def create
@@ -23,7 +23,7 @@ module Api
         client = current_workspace.clients.build(client_params)
 
         if client.save
-          render json: client.as_json(only: [ :id, :name, :billing_address ]), status: :created
+          render json: client.as_json(only: [ :id, :name, :billing_address, :manager ]), status: :created
         else
           render json: { error: "unprocessable_entity", message: client.errors.full_messages.join(", ") }, status: :unprocessable_entity
         end
@@ -34,7 +34,7 @@ module Api
         return if performed?
 
         if @client.update(client_params)
-          render json: @client.as_json(only: [ :id, :name, :billing_address ])
+          render json: @client.as_json(only: [ :id, :name, :billing_address, :manager ])
         else
           render json: { error: "unprocessable_entity", message: @client.errors.full_messages.join(", ") }, status: :unprocessable_entity
         end
@@ -56,7 +56,7 @@ module Api
       end
 
       def client_params
-        params.require(:client).permit(:name, :billing_address)
+        params.require(:client).permit(:name, :billing_address, :manager)
       end
     end
   end

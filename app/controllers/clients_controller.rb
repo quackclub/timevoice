@@ -10,7 +10,7 @@ class ClientsController < ApplicationController
     @clients = current_workspace.clients.order(:name)
 
     render inertia: "Clients/Index", props: {
-      clients: @clients.as_json(only: [ :id, :name, :billing_address ])
+      clients: @clients.as_json(only: [ :id, :name, :billing_address, :manager ])
     }
   end
 
@@ -49,6 +49,6 @@ class ClientsController < ApplicationController
   end
 
   def client_params
-    params.require(:client).permit(:name, :billing_address)
+    params.require(:client).permit(:name, :billing_address, :manager)
   end
 end

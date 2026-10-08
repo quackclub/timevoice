@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.2].define(version: 2026_02_11_184502) do
+ActiveRecord::Schema[8.2].define(version: 2026_10_08_150000) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -39,14 +39,55 @@ ActiveRecord::Schema[8.2].define(version: 2026_02_11_184502) do
     t.index ["blob_id", "variation_digest"], name: "index_active_storage_variant_records_uniqueness", unique: true
   end
 
+  create_table "activity_events", force: :cascade do |t|
+    t.integer "workspace_id", null: false
+    t.integer "user_id", null: false
+    t.integer "project_id", null: false
+    t.string "kind", null: false
+    t.string "source", null: false
+    t.string "external_id", null: false
+    t.datetime "occurred_at", null: false
+    t.datetime "ended_at"
+    t.integer "duration_seconds"
+    t.string "title"
+    t.string "url"
+    t.string "ref"
+    t.json "metadata", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["project_id", "kind", "external_id"], name: "index_activity_events_on_project_id_and_kind_and_external_id", unique: true
+    t.index ["project_id"], name: "index_activity_events_on_project_id"
+    t.index ["user_id"], name: "index_activity_events_on_user_id"
+    t.index ["workspace_id", "occurred_at"], name: "index_activity_events_on_workspace_id_and_occurred_at"
+    t.index ["workspace_id"], name: "index_activity_events_on_workspace_id"
+  end
+
   create_table "clients", force: :cascade do |t|
     t.text "billing_address"
     t.datetime "created_at", null: false
     t.string "name", null: false
     t.datetime "updated_at", null: false
     t.integer "workspace_id", null: false
+    t.string "manager"
     t.index ["workspace_id", "name"], name: "index_clients_on_workspace_id_and_name", unique: true
     t.index ["workspace_id"], name: "index_clients_on_workspace_id"
+  end
+
+  create_table "identities", force: :cascade do |t|
+    t.integer "user_id", null: false
+    t.string "provider", null: false
+    t.string "uid", null: false
+    t.string "username"
+    t.string "email"
+    t.text "access_token"
+    t.text "refresh_token"
+    t.datetime "expires_at"
+    t.string "scopes"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["provider", "uid"], name: "index_identities_on_provider_and_uid", unique: true
+    t.index ["user_id", "provider"], name: "index_identities_on_user_id_and_provider", unique: true
+    t.index ["user_id"], name: "index_identities_on_user_id"
   end
 
   create_table "invites", force: :cascade do |t|
@@ -86,6 +127,7 @@ ActiveRecord::Schema[8.2].define(version: 2026_02_11_184502) do
     t.string "sender_name", null: false
     t.datetime "updated_at", null: false
     t.integer "workspace_id", null: false
+    t.string "sender_email"
     t.index ["workspace_id"], name: "index_invoice_settings_on_workspace_id"
   end
 
@@ -100,6 +142,7 @@ ActiveRecord::Schema[8.2].define(version: 2026_02_11_184502) do
     t.integer "total_cents", default: 0, null: false
     t.datetime "updated_at", null: false
     t.integer "workspace_id", null: false
+    t.json "options", default: {}, null: false
     t.index ["client_id"], name: "index_invoices_on_client_id"
     t.index ["status"], name: "index_invoices_on_status"
     t.index ["workspace_id", "client_id"], name: "index_invoices_on_workspace_id_and_client_id"
@@ -175,6 +218,13 @@ ActiveRecord::Schema[8.2].define(version: 2026_02_11_184502) do
     t.string "name", null: false
     t.datetime "updated_at", null: false
     t.integer "workspace_id", null: false
+    t.text "github_repos"
+    t.text "hackatime_projects"
+    t.text "hackatime_catchall_projects"
+    t.text "cloudflare_workers"
+    t.datetime "activity_synced_at"
+    t.text "activity_sync_error"
+    t.text "vercel_projects"
     t.index ["client_id"], name: "index_projects_on_client_id"
     t.index ["color"], name: "index_projects_on_color"
     t.index ["workspace_id", "name"], name: "index_projects_on_workspace_id_and_name", unique: true
@@ -224,7 +274,7 @@ ActiveRecord::Schema[8.2].define(version: 2026_02_11_184502) do
     t.string "avatar_url"
     t.datetime "created_at", null: false
     t.string "email", null: false
-    t.string "google_uid", null: false
+    t.string "google_uid"
     t.integer "last_used_workspace_id"
     t.string "name", null: false
     t.string "timezone", default: "UTC"
@@ -245,7 +295,11 @@ ActiveRecord::Schema[8.2].define(version: 2026_02_11_184502) do
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "activity_events", "projects"
+  add_foreign_key "activity_events", "users"
+  add_foreign_key "activity_events", "workspaces"
   add_foreign_key "clients", "workspaces"
+  add_foreign_key "identities", "users"
   add_foreign_key "invites", "users", column: "inviter_id"
   add_foreign_key "invites", "workspaces"
   add_foreign_key "invoice_lines", "invoices"

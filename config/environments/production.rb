@@ -18,6 +18,9 @@ Rails.application.configure do
 
   config.log_level = ENV.fetch("RAILS_LOG_LEVEL", "info")
 
+  # Set behind a TLS-terminating proxy that does not forward X-Forwarded-Proto.
+  config.assume_ssl = true if ENV["RAILS_ASSUME_SSL"] == "true"
+
   config.silence_healthcheck_path = "/up"
 
   config.active_support.report_deprecations = false
@@ -28,15 +31,20 @@ Rails.application.configure do
   config.solid_queue.connects_to = { database: { writing: :queue } }
 
   config.action_mailer.default_url_options = { host: Rails.app.creds.require(:site_host) }
-  config.action_mailer.delivery_method = :smtp
-  config.action_mailer.smtp_settings = {
-    address: Rails.app.creds.require(:smtp, :address),
-    port: Rails.app.creds.option(:smtp, :port, default: 587),
-    user_name: Rails.app.creds.require(:smtp, :user_name),
-    password: Rails.app.creds.require(:smtp, :password),
-    authentication: :plain,
-    enable_starttls_auto: true
-  }
+  if Rails.app.creds.option(:smtp, :address).present?
+    config.action_mailer.delivery_method = :smtp
+    config.action_mailer.smtp_settings = {
+      address: Rails.app.creds.require(:smtp, :address),
+      port: Rails.app.creds.option(:smtp, :port, default: 587),
+      user_name: Rails.app.creds.require(:smtp, :user_name),
+      password: Rails.app.creds.require(:smtp, :password),
+      authentication: :plain,
+      enable_starttls_auto: true
+    }
+  else
+    # No SMTP configured: emails are logged instead of sent.
+    config.action_mailer.delivery_method = :test
+  end
 
   config.i18n.fallbacks = true
 

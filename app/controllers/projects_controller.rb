@@ -13,7 +13,7 @@ class ProjectsController < ApplicationController
     render inertia: "Projects/Index", props: {
       projects: @projects.map { |project|
         project.as_json(
-          only: [ :id, :name, :color, :billable_default ],
+          only: [ :id, :name, :color, :billable_default, :github_repos, :hackatime_projects, :hackatime_catchall_projects, :cloudflare_workers, :vercel_projects, :activity_synced_at, :activity_sync_error ],
           include: { client: { only: [ :id, :name ] } }
         )
       },
@@ -57,6 +57,6 @@ class ProjectsController < ApplicationController
   end
 
   def project_params
-    params.require(:project).permit(:name, :client_id, :color, :billable_default)
+    params.require(:project).permit(:name, :client_id, :color, :billable_default, *Project::LIST_FIELDS)
   end
 end

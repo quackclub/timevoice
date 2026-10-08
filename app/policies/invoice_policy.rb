@@ -28,4 +28,8 @@ class InvoicePolicy < ApplicationPolicy
   def send_email?
     update?
   end
+
+  def refresh_activity?
+    update?
+  end
 end

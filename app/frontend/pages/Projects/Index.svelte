@@ -21,7 +21,48 @@
     X,
     Briefcase,
   } from "lucide-svelte";
-  import type { Project, Client } from "../../types";
+  import SourceFields from "../../components/activity/SourceFields.svelte";
+  import type { Project as BaseProject, Client } from "../../types";
+
+  type Project = BaseProject & {
+    github_repos?: string | null;
+    hackatime_projects?: string | null;
+    hackatime_catchall_projects?: string | null;
+    cloudflare_workers?: string | null;
+    vercel_projects?: string | null;
+    activity_synced_at?: string | null;
+    activity_sync_error?: string | null;
+  };
+
+  const SOURCE_FIELDS = [
+    ["github_repos", "repo"],
+    ["hackatime_projects", "Hackatime project"],
+    ["hackatime_catchall_projects", "catch-all"],
+    ["cloudflare_workers", "Worker"],
+    ["vercel_projects", "Vercel project"],
+  ] as const;
+
+  function listCount(value: string | null | undefined): number {
+    return (value || "").split(/[\s,]+/).filter(Boolean).length;
+  }
+
+  function sourceSummary(project: Project): string {
+    return SOURCE_FIELDS.map(([field, label]) => {
+      const n = listCount(project[field]);
+      return n ? `${n} ${label}${n === 1 ? "" : "s"}` : null;
+    })
+      .filter(Boolean)
+      .join(" · ");
+  }
+
+  function syncedLabel(iso: string): string {
+    return new Date(iso).toLocaleString("en-US", {
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    });
+  }
 
   const workspaceId = $derived($page.props.auth?.workspace?.hashid);
 
@@ -32,6 +73,11 @@
   let editingId: number | null = $state(null);
 
   let createForm = useForm({
+    github_repos: "",
+    hackatime_projects: "",
+    hackatime_catchall_projects: "",
+    cloudflare_workers: "",
+    vercel_projects: "",
     name: "",
     client_id: "",
     color: ($page.props.colors as string[])?.[0] ?? "",
@@ -39,6 +85,11 @@
   });
 
   let editForm = useForm({
+    github_repos: "",
+    hackatime_projects: "",
+    hackatime_catchall_projects: "",
+    cloudflare_workers: "",
+    vercel_projects: "",
     name: "",
     client_id: "",
     color: "",
@@ -51,6 +102,12 @@
     $editForm.client_id = project.client?.id?.toString() || "";
     $editForm.color = project.color;
     $editForm.billable_default = project.billable_default;
+    $editForm.github_repos = project.github_repos || "";
+    $editForm.hackatime_projects = project.hackatime_projects || "";
+    $editForm.hackatime_catchall_projects =
+      project.hackatime_catchall_projects || "";
+    $editForm.cloudflare_workers = project.cloudflare_workers || "";
+    $editForm.vercel_projects = project.vercel_projects || "";
   }
 
   function cancelEditing() {
@@ -135,6 +192,17 @@
 
       <ColorPicker {colors} bind:value={$createForm.color} />
 
+      <SourceFields
+        idPrefix="project-new"
+        bind:github_repos={$createForm.github_repos}
+        bind:hackatime_projects={$createForm.hackatime_projects}
+        bind:hackatime_catchall_projects={
+          $createForm.hackatime_catchall_projects
+        }
+        bind:cloudflare_workers={$createForm.cloudflare_workers}
+        bind:vercel_projects={$createForm.vercel_projects}
+      />
+
       <div class="flex items-center justify-between">
         <label class="flex items-center gap-2 cursor-pointer">
           <input
@@ -202,6 +270,17 @@
 
               <ColorPicker {colors} bind:value={$editForm.color} />
 
+              <SourceFields
+                idPrefix="project-{project.id}"
+                bind:github_repos={$editForm.github_repos}
+                bind:hackatime_projects={$editForm.hackatime_projects}
+                bind:hackatime_catchall_projects={
+                  $editForm.hackatime_catchall_projects
+                }
+                bind:cloudflare_workers={$editForm.cloudflare_workers}
+                bind:vercel_projects={$editForm.vercel_projects}
+              />
+
               <div class="flex items-center justify-between">
                 <label class="flex items-center gap-2 cursor-pointer">
                   <input
@@ -256,6 +335,23 @@
                   {project.client.name}
                 {:else}
                   <span class="text-fg-dim italic">No client</span>
+                {/if}
+                {#if sourceSummary(project)}
+                  <span class="block text-xs text-fg-dim">
+                    {sourceSummary(project)}
+                    {#if project.activity_synced_at}
+                      · synced {syncedLabel(project.activity_synced_at)}
+                    {:else}
+                      · not synced yet
+                    {/if}
+                  </span>
+                {/if}
+                {#if project.activity_sync_error}
+                  <span
+                    class="block text-xs text-bright-red truncate"
+                    title={project.activity_sync_error}
+                    >Sync error: {project.activity_sync_error}</span
+                  >
                 {/if}
               {/snippet}
               {#snippet actions()}
