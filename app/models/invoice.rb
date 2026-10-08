@@ -68,7 +68,7 @@ class Invoice < ApplicationRecord
     users = invoice_lines.filter_map { |l| l.time_entry&.user_id }.uniq
     scope = workspace.activity_events.where(project_id: projects).between(period_range.first, period_range.last)
     scope = scope.where(user_id: users) if users.any?
-    scope.where(kind: settings["receipt_kinds"]).chronological.to_a
+    scope.where(kind: settings["receipt_kinds"]).listable.chronological.to_a
   end
 
   def timeline_days

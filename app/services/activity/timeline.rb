@@ -4,7 +4,6 @@ module Activity
   # anything left over is shown at day level.
   class Timeline
     MATCH_SLACK = 30.minutes
-    MIN_CODING_SECONDS = 60
 
     Day = Struct.new(:date, :entries, :events, :billed_seconds, :coded_seconds, keyword_init: true)
     Entry = Struct.new(:entry, :line, :events, keyword_init: true)
@@ -13,7 +12,7 @@ module Activity
       @entries = entries.sort_by(&:start_at)
       @events = events
         .select { |e| kinds.include?(e.kind) }
-        .reject { |e| e.kind == "coding" && e.duration_seconds.to_i < MIN_CODING_SECONDS }
+        .select(&:listable?)
         .sort_by(&:occurred_at)
       @zone = ActiveSupport::TimeZone[timezone.presence || "UTC"] || Time.zone
       @match = match

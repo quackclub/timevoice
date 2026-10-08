@@ -14,7 +14,7 @@ class ActivityController < ApplicationController
 
     entries = current_user.time_entries.where(workspace: current_workspace).completed
       .where(start_at: from..to).includes(:project)
-    events = current_workspace.activity_events.where(user: current_user).between(from, to).chronological.to_a
+    events = current_workspace.activity_events.where(user: current_user).between(from, to).listable.chronological.to_a
     timeline = Activity::Timeline.new(entries: entries, events: events, timezone: zone)
     days = timeline.days
     billed = days.to_h { |d| [ d.date, d.billed_seconds ] }
