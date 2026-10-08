@@ -2,6 +2,7 @@
   import {
     KIND_COLORS,
     formatClock,
+    formatMinutes,
     receiptDetail,
     type ActivityEvent,
   } from "../../lib/activity";
@@ -35,7 +36,7 @@
   }
 
   function refText(e: ActivityEvent) {
-    if (e.kind === "coding") return formatClock(e.duration_seconds ?? 0);
+    if (e.kind === "coding") return formatMinutes(e.duration_seconds ?? 0);
     if (e.kind === "branch") return "";
     return e.ref ?? "";
   }

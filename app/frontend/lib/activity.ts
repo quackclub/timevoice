@@ -83,6 +83,14 @@ export function formatClock(seconds: number): string {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 }
 
+// "45m", "1h 05m" — used for coding time so "0:01" is never misread as seconds.
+export function formatMinutes(seconds: number): string {
+  const m = Math.round(seconds / 60);
+  return m < 60
+    ? `${m}m`
+    : `${Math.floor(m / 60)}h ${String(m % 60).padStart(2, "0")}m`;
+}
+
 export function receiptDetail(e: ActivityEvent): string {
   const m = e.metadata || {};
   const repo = String(m.repo || "")

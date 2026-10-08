@@ -13,6 +13,7 @@
     KIND_COLORS,
     KIND_LABELS,
     formatClock,
+    formatMinutes,
     type Estimates,
     type TimelineDay,
     type ActivityKind,
@@ -563,7 +564,7 @@
               <span class="text-xs text-fg-dim font-mono tabular-nums">
                 {#if day.coded_seconds}
                   <span style="color: {KIND_COLORS.coding}"
-                    >{formatClock(day.coded_seconds)} coded</span
+                    >{formatMinutes(day.coded_seconds)} coded</span
                   > ·
                 {/if}
                 {day.entries.length

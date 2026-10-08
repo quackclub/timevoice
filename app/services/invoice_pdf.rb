@@ -245,7 +245,7 @@ class InvoicePdf
       @document.stroke_horizontal_rule
       @document.move_down 8
       summary = day.entries.any? ? format_duration(day.billed_seconds) + " billed" : "no billed time"
-      summary = "#{format_duration(day.coded_seconds)} coded · #{summary}" if day.coded_seconds.positive?
+      summary = "#{format_minutes(day.coded_seconds)} coded · #{summary}" if day.coded_seconds.positive?
       y = @document.cursor
       @document.text day.date.strftime("%a, %b %-d"), size: 11, style: :bold, color: day.entries.any? ? TEXT_PRIMARY : TEXT_MUTED
       @document.draw_text summary, at: [ @document.bounds.width - @document.width_of(summary, size: 8), y - 9 ], size: 8, color: TEXT_SECONDARY
@@ -287,7 +287,7 @@ class InvoicePdf
     return if events.empty?
     rows = events.map do |e|
       time = e.occurred_at.in_time_zone(zone).strftime("%-I:%M %p").downcase
-      ref = e.kind == "coding" ? format_duration(e.duration_seconds.to_i) : e.short_ref.to_s
+      ref = e.kind == "coding" ? format_minutes(e.duration_seconds.to_i) : e.short_ref.to_s
       [ time, KIND_LABELS[e.kind], ref, receipt_text(e) ]
     end
     @document.indent(10) do
@@ -363,6 +363,11 @@ class InvoicePdf
       tb.row(0).border_bottom_color = BORDER_COLOR
       tb.columns(1..4).align = :right
     end
+  end
+
+  def format_minutes(seconds)
+    m = (seconds.to_i / 60.0).round
+    m < 60 ? "#{m}m" : format("%dh %02dm", m / 60, m % 60)
   end
 
   def format_duration(seconds)

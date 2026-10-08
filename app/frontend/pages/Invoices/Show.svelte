@@ -31,6 +31,7 @@
   } from "../../components/invoice/InvoiceOptionsFields.svelte";
   import {
     formatClock,
+    formatMinutes,
     type Estimates,
     type TimelineDay,
   } from "../../lib/activity";
@@ -442,7 +443,7 @@
               <span class="text-xs text-fg-muted font-tabular">
                 {#if day.coded_seconds > 0}
                   <span style="color: #d6336c"
-                    >{formatClock(day.coded_seconds)} coded</span
+                    >{formatMinutes(day.coded_seconds)} coded</span
                   > ·
                 {/if}
                 {day.entries.length

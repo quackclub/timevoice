@@ -3,6 +3,7 @@
     KIND_COLORS,
     KIND_LABELS,
     formatClock,
+    formatMinutes,
     receiptDetail,
     type ActivityEvent,
   } from "../../lib/activity";
@@ -26,7 +27,7 @@
   let color = $derived(KIND_COLORS[event.kind]);
   let refText = $derived(
     event.kind === "coding"
-      ? formatClock(event.duration_seconds || 0)
+      ? formatMinutes(event.duration_seconds || 0)
       : event.ref || "",
   );
   let message = $derived.by(() => {

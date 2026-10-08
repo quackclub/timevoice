@@ -37,4 +37,14 @@ class Activity::TimelineTest < ActiveSupport::TestCase
     days = Activity::Timeline.new(entries: [ @entry ], events: [ branch ], timezone: "UTC", kinds: %w[commit]).days
     assert_equal [ Date.new(2026, 9, 11) ], days.map(&:date)
   end
+
+  test "coding blocks under a minute are hidden and not counted" do
+    short = ActivityEvent.create!(workspace: @workspace, user: @user, project: @project, kind: "coding", source: "hackatime",
+      external_id: "short", occurred_at: Time.utc(2026, 9, 11, 10), duration_seconds: 45, title: "Coding")
+    long = ActivityEvent.create!(workspace: @workspace, user: @user, project: @project, kind: "coding", source: "hackatime",
+      external_id: "long", occurred_at: Time.utc(2026, 9, 11, 11), duration_seconds: 300, title: "Coding")
+    day = Activity::Timeline.new(entries: [], events: [ short, long ], timezone: "UTC").days.first
+    assert_equal [ long ], day.events
+    assert_equal 300, day.coded_seconds
+  end
 end
