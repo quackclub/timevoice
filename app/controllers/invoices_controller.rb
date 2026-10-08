@@ -78,11 +78,12 @@ class InvoicesController < ApplicationController
       estimates: detailed && @invoice.settings["reconciliation"] ? @invoice.estimates : nil,
       receiptKinds: ActivityEvent::KINDS,
       timezone: @invoice.time_zone,
+      sender: @invoice.sender,
       invoice: @invoice.as_json(
         only: [ :id, :invoice_number, :status, :total_cents, :period_start, :period_end, :issued_on ],
         methods: [ :hashid, :settings ],
         include: {
-          client: { only: [ :id, :name, :billing_address ] },
+          client: { only: [ :id, :name, :billing_address, :manager ] },
           invoice_lines: { only: [ :id, :description, :qty_hours, :rate_cents, :amount_cents ] }
         }
       ).merge(

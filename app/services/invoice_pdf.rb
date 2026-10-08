@@ -49,7 +49,7 @@ class InvoicePdf
   end
 
   def build_header
-    sender_name = @invoice_setting&.sender_name || "Your Company"
+    sender_name = @invoice.sender[:name] || "Your Company"
 
     @document.text "INVOICE",
       size: 11,
@@ -96,16 +96,21 @@ class InvoicePdf
 
       @document.move_down 8
 
-      sender_name = @invoice_setting&.sender_name || "Your Company"
-      @document.text sender_name,
+      sender = @invoice.sender
+      @document.text sender[:name] || "Your Company",
         size: 12,
         style: :bold,
         color: TEXT_PRIMARY
 
       @document.move_down 6
 
-      if @invoice_setting&.sender_address.present?
-        @document.text @invoice_setting.sender_address,
+      if sender[:email].present?
+        @document.text sender[:email], size: 9, color: TEXT_SECONDARY
+        @document.move_down 4
+      end
+
+      if sender[:address].present?
+        @document.text sender[:address],
           size: 9,
           color: TEXT_SECONDARY,
           leading: 4
@@ -126,6 +131,11 @@ class InvoicePdf
 
       @document.move_down 6
 
+      if @invoice.client.manager.present?
+        @document.text "Attn: #{@invoice.client.manager}", size: 9, color: TEXT_SECONDARY
+        @document.move_down 4
+      end
+
       if @invoice.client.billing_address.present?
         @document.text @invoice.client.billing_address,
           size: 9,
@@ -134,7 +144,7 @@ class InvoicePdf
       end
     end
 
-    @document.move_cursor_to(start_y - 100)
+    @document.move_cursor_to(start_y - 115)
   end
 
   def build_line_items_table

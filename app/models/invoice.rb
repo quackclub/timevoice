@@ -54,6 +54,17 @@ class Invoice < ApplicationRecord
     raw
   end
 
+  # Who the invoice is from: billing settings, falling back to the workspace owner's account.
+  def sender
+    setting = workspace.invoice_setting
+    owner = workspace.owner
+    {
+      name: setting&.sender_name.presence || owner&.name,
+      email: setting&.sender_email.presence || owner&.email,
+      address: setting&.sender_address.presence
+    }
+  end
+
   def time_zone
     workspace.owner&.timezone.presence || "UTC"
   end

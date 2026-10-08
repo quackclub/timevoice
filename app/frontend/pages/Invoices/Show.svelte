@@ -61,6 +61,7 @@
       id: number;
       name: string;
       billing_address: string | null;
+      manager?: string | null;
     };
     lines: InvoiceLine[];
     settings: InvoiceOptions;
@@ -71,6 +72,11 @@
   let estimates = $derived(($page.props.estimates as Estimates | null) ?? null);
   let receiptKinds = $derived(($page.props.receiptKinds as string[]) || []);
   let timezone = $derived(($page.props.timezone as string) || "UTC");
+  let sender = $derived(
+    $page.props.sender as
+      | { name: string | null; email: string | null; address: string | null }
+      | undefined,
+  );
   let detailed = $derived(invoice.settings?.layout === "detailed");
   let hasReceipts = $derived(
     timeline.some(
@@ -386,13 +392,37 @@
       </div>
     </div>
 
-    <div class="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div class="p-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div class="bg-bg-primary border border-bg-tertiary rounded-[10px] p-4">
+        <div class="flex items-center justify-between gap-2 text-fg-muted mb-2">
+          <span class="text-sm">From</span>
+          <Link
+            href={routes.settings.billing(workspaceId)}
+            class="text-xs underline hover:text-fg-primary">Edit</Link
+          >
+        </div>
+        <div class="font-medium">{sender?.name || "—"}</div>
+        {#if sender?.email}
+          <div class="mt-1 text-sm text-fg-muted">{sender.email}</div>
+        {/if}
+        {#if sender?.address}
+          <div class="mt-1 text-sm text-fg-muted whitespace-pre-line">
+            {sender.address}
+          </div>
+        {/if}
+      </div>
+
       <div class="bg-bg-primary border border-bg-tertiary rounded-[10px] p-4">
         <div class="flex items-center gap-2 text-fg-muted mb-2">
           <Building2 class="w-4 h-4" />
-          <span class="text-sm">Client</span>
+          <span class="text-sm">Bill to</span>
         </div>
         <div class="font-medium">{invoice.client.name}</div>
+        {#if invoice.client.manager}
+          <div class="mt-1 text-sm text-fg-muted">
+            Attn: {invoice.client.manager}
+          </div>
+        {/if}
         {#if invoice.client.billing_address}
           <div class="mt-1 text-sm text-fg-muted whitespace-pre-line">
             {invoice.client.billing_address}

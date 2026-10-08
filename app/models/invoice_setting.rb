@@ -3,6 +3,8 @@ class InvoiceSetting < ApplicationRecord
 
   belongs_to :workspace
 
+  validates :sender_email, format: { with: URI::MailTo::EMAIL_REGEXP }, allow_blank: true
+
   validates :billable_rate_cents, presence: true, numericality: { greater_than_or_equal_to: 0 }
   validates :sender_name, presence: true
   validates :workspace_id, uniqueness: true
