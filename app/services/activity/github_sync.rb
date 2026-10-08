@@ -23,6 +23,9 @@ module Activity
         count += sync_repo(repo)
       end
       count
+    rescue HttpJson::Error => e
+      raise unless e.message.include?(" returned 401:")
+      raise Activity::Sync::SkipSource, "GitHub rejected the saved sign-in token; reconnect GitHub in Settings → Integrations (or set GITHUB_TOKEN on the server)"
     end
 
     private

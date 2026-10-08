@@ -26,3 +26,19 @@ class Activity::HackatimeSyncTest < ActiveSupport::TestCase
     assert_equal 60 + 120, blocks.first[:secs]
   end
 end
+
+class Activity::GithubSyncTest < ActiveSupport::TestCase
+  test "a rejected GitHub token becomes a skip with reconnect advice" do
+    project = projects(:one)
+    project.update_columns(github_repos: "hackclub/slacker-news")
+    user = users(:one)
+    user.identities.create!(provider: "github", uid: "1", username: "someone", access_token: "expired")
+    sync = Activity::GithubSync.new(project: project, user: user, from: 1.day.ago, to: Time.current)
+    http = Object.new
+    def http.get(*) = raise(Activity::HttpJson::Error, "api.github.com/repos/x returned 401: Bad credentials")
+    sync.instance_variable_set(:@http, http)
+
+    error = assert_raises(Activity::Sync::SkipSource) { sync.run }
+    assert_match "reconnect GitHub", error.message
+  end
+end
