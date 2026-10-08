@@ -99,5 +99,4 @@ Rails.application.routes.draw do
 
   root "marketing#home"
   get "/:workspace_id", to: "dashboard#index", constraints: { workspace_id: /[a-zA-Z0-9]+/ }
-
 end
