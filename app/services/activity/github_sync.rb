@@ -46,16 +46,21 @@ module Activity
       time && time >= @from && time <= @to
     end
 
-    def search(q)
-      items = []
-      page = 1
-      loop do
-        data, = @http.get("/search/issues", q: q, per_page: 100, page: page)
-        items.concat(data["items"])
-        break if data["items"].size < 100 || items.size >= data["total_count"] || page >= 10
-        page += 1
+    # Pull requests updated since the period start, newest first. Uses the pulls list rather than
+    # the search API, which has a much stricter secondary rate limit.
+    def recent_pulls(repo)
+      @recent_pulls ||= {}
+      @recent_pulls[repo] ||= begin
+        pulls = []
+        page = 1
+        loop do
+          data, = @http.get("/repos/#{repo}/pulls", state: "all", sort: "updated", direction: "desc", per_page: 100, page: page)
+          pulls.concat(data)
+          break if data.size < 100 || page >= 20 || Time.zone.parse(data.last["updated_at"]) < @from
+          page += 1
+        end
+        pulls.select { |pr| Time.zone.parse(pr["updated_at"]) >= @from }
       end
-      items
     end
 
     def paginate(path, query = {})
@@ -71,12 +76,12 @@ module Activity
 
     def sync_pull_requests(repo)
       shas = {}
-      prs = search("repo:#{repo} is:pr author:#{@login} updated:>=#{@from.to_date.iso8601}")
+      prs = recent_pulls(repo).select { |pr| pr.dig("user", "login")&.casecmp?(@login) }
       prs.each do |pr|
         number = pr["number"]
         created = Time.zone.parse(pr["created_at"])
         if in_range?(created)
-          state = pr.dig("pull_request", "merged_at") ? "merged" : pr["state"]
+          state = pr["merged_at"] ? "merged" : pr["state"]
           @recorder.record(kind: "pr", external_id: "#{repo}##{number}", occurred_at: created,
             title: pr["title"], url: pr["html_url"], ref: "##{number}",
             metadata: { repo: repo, number: number, state: state })
@@ -113,7 +118,8 @@ module Activity
     end
 
     def sync_reviewed(repo)
-      search("repo:#{repo} is:pr is:merged -author:#{@login} merged:#{@from.to_date.iso8601}..#{@to.to_date.iso8601}").each do |pr|
+      recent_pulls(repo).each do |pr|
+        next if pr.dig("user", "login")&.casecmp?(@login) || !in_range?(pr["merged_at"] && Time.zone.parse(pr["merged_at"]))
         full, = @http.get("/repos/#{repo}/pulls/#{pr['number']}")
         next unless full.dig("merged_by", "login") == @login
         at = Time.zone.parse(full["merged_at"])
