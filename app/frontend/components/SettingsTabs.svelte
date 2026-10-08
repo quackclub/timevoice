@@ -4,7 +4,7 @@
 
   interface Props {
     workspaceId: string;
-    active: "workspace" | "billing" | "integrations" | "developer";
+    active: "workspace" | "billing" | "integrations" | "import" | "developer";
   }
 
   let { workspaceId, active }: Props = $props();
@@ -17,11 +17,12 @@
       label: "Integrations",
       href: routes.settings.integrations,
     },
+    { key: "import", label: "Import", href: routes.settings.import },
     { key: "developer", label: "Developer", href: routes.settings.developer },
   ] as const;
 </script>
 
-<div class="grid grid-cols-2 sm:grid-cols-4">
+<div class="grid grid-cols-2 sm:grid-cols-5">
   {#each tabs as tab, index}
     <Link
       href={tab.href(workspaceId)}

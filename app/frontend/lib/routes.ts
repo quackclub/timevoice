@@ -76,6 +76,7 @@ export const routes = {
     developer: (workspaceId: string) => `/${workspaceId}/settings/developer`,
     integrations: (workspaceId: string) =>
       `/${workspaceId}/settings/integrations`,
+    import: (workspaceId: string) => `/${workspaceId}/settings/import`,
     connectIntegration: (workspaceId: string, provider: string) =>
       `/${workspaceId}/settings/integrations/${provider}/connect`,
     updateWorkspace: (workspaceId: string) =>

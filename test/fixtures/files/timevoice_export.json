@@ -1,0 +1,147 @@
+{
+ "me": {
+  "id": 1,
+  "email": "old@example.com",
+  "name": "Old User"
+ },
+ "clients": [
+  {
+   "id": 44,
+   "name": "Acme Co",
+   "billing_address": "1 Example Way\nSpringfield"
+  }
+ ],
+ "projects": [
+  {
+   "id": 62,
+   "name": "Project A",
+   "color": "#d79921",
+   "billable_default": true,
+   "client": {
+    "id": 44,
+    "name": "Acme Co"
+   }
+  },
+  {
+   "id": 61,
+   "name": "Project B",
+   "color": "#cc241d",
+   "billable_default": true,
+   "client": {
+    "id": 44,
+    "name": "Acme Co"
+   }
+  }
+ ],
+ "tags": [
+  {
+   "id": 11,
+   "name": "tag-1"
+  },
+  {
+   "id": 10,
+   "name": "tag-2"
+  }
+ ],
+ "time_entries": [
+  {
+   "id": 2220,
+   "description": "task 1",
+   "billable": true,
+   "start_at": "2026-09-11T23:30:21.313Z",
+   "end_at": "2026-09-12T00:23:02.913Z",
+   "project": {
+    "id": 61,
+    "name": "Project B",
+    "color": "#cc241d"
+   },
+   "tags": [
+    {
+     "id": 11,
+     "name": "tag-1"
+    }
+   ]
+  },
+  {
+   "id": 2219,
+   "description": "task 2",
+   "billable": true,
+   "start_at": "2026-09-11T19:24:09.343Z",
+   "end_at": "2026-09-11T20:18:37.706Z",
+   "project": {
+    "id": 61,
+    "name": "Project B",
+    "color": "#cc241d"
+   },
+   "tags": []
+  },
+  {
+   "id": 2216,
+   "description": "task 3",
+   "billable": true,
+   "start_at": "2026-09-11T18:28:55.609Z",
+   "end_at": "2026-09-11T19:00:19.204Z",
+   "project": {
+    "id": 62,
+    "name": "Project A",
+    "color": "#d79921"
+   },
+   "tags": []
+  },
+  {
+   "id": 9,
+   "description": "still running",
+   "billable": true,
+   "start_at": "2026-10-01T10:00:00Z",
+   "end_at": null,
+   "tags": []
+  }
+ ],
+ "invoices": [
+  {
+   "id": 112,
+   "status": "draft",
+   "total_cents": 3117,
+   "period_start": "2026-09-07",
+   "period_end": "2026-10-07",
+   "issued_on": "2026-10-07",
+   "hashid": "gW37nW",
+   "client": {
+    "id": 44,
+    "name": "Acme Co",
+    "billing_address": "1 Example Way\nSpringfield"
+   },
+   "total_amount": "$346.11",
+   "line_count": 25,
+   "invoice_lines": [
+    {
+     "id": 2685,
+     "description": "task 3",
+     "qty_hours": "0.52",
+     "rate_cents": 1350,
+     "amount_cents": 706,
+     "amount": "$7.06",
+     "rate": "$13.50/hr"
+    },
+    {
+     "id": 2686,
+     "description": "task 2",
+     "qty_hours": "0.91",
+     "rate_cents": 1350,
+     "amount_cents": 1226,
+     "amount": "$12.26",
+     "rate": "$13.50/hr"
+    },
+    {
+     "id": 2687,
+     "description": "task 1",
+     "qty_hours": "0.88",
+     "rate_cents": 1350,
+     "amount_cents": 1185,
+     "amount": "$11.85",
+     "rate": "$13.50/hr"
+    }
+   ]
+  }
+ ]
+}

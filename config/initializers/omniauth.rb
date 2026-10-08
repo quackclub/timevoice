@@ -14,7 +14,8 @@ module AuthProviders
     key = provider == "google_oauth2" ? :google : provider.to_sym
     id = Rails.app.creds.option(key, :client_id)
     secret = Rails.app.creds.option(key, :client_secret)
-    [ id, secret ] if id.present? && secret.present?
+    return [ id, secret ] if id.present? && secret.present?
+    [ "test", "test" ] if Rails.env.test? # tests sign in through OmniAuth test mode
   end
 
   def self.enabled?(provider)

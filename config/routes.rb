@@ -45,6 +45,8 @@ Rails.application.routes.draw do
   delete "/auth/:provider", to: "sessions#disconnect", as: :disconnect_identity
   get "/auth/failure", to: "sessions#failure"
 
+  get "/settings/import/callback", to: "timevoice_imports#callback", as: :timevoice_import_callback
+
   get "/invite/:token", to: "invites#show", as: :invite
   post "/invite/:token/accept", to: "invites#accept", as: :accept_invite
   post "/invite/:token/decline", to: "invites#decline", as: :decline_invite
@@ -62,6 +64,8 @@ Rails.application.routes.draw do
     patch "/settings/billing", to: "settings#update_billing"
     get "/settings/developer", to: "oauth_applications#index", as: :settings_developer
     get "/settings/integrations", to: "integrations#show", as: :settings_integrations
+    get "/settings/import", to: "timevoice_imports#show", as: :settings_import
+    post "/settings/import", to: "timevoice_imports#create"
     post "/settings/integrations/:provider/connect", to: "integrations#connect", as: :connect_integration
     get "/activity", to: "activity#index", as: :activity
     post "/activity/sync", to: "activity#sync", as: :sync_activity
