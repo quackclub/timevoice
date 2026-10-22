@@ -1,14 +1,15 @@
 export type FlashData = {
-  notice?: string
-  alert?: string
-}
+  notice?: string;
+  alert?: string;
+};
 
-export type SharedProps = {}
+export type SharedProps = {};
 
 export type Client = {
   id: number;
   name: string;
   billing_address?: string | null;
+  manager?: string | null;
 };
 
 export type Tag = {

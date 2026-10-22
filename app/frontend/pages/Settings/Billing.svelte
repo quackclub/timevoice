@@ -17,6 +17,7 @@
 
   let form = useForm({
     sender_name: ($page.props.invoiceSettings as any)?.sender_name || "",
+    sender_email: ($page.props.invoiceSettings as any)?.sender_email || "",
     sender_address: ($page.props.invoiceSettings as any)?.sender_address || "",
     billable_rate_cents:
       ($page.props.invoiceSettings as any)?.billable_rate_cents || 0,
@@ -52,8 +53,8 @@
     <div class="space-y-6">
       <FormField
         id="sender-name"
-        label="Sender Name"
-        description="This name will appear as the sender on your invoices."
+        label="Name shown under From"
+        description="Appears as the sender on your invoices and PDFs. It is not tied to your sign-in name."
         error={$form.errors.sender_name}
       >
         {#snippet children({ describedBy })}
@@ -62,6 +63,25 @@
             tone="purple"
             bind:value={$form.sender_name}
             placeholder="Your name or company name"
+            aria-describedby={describedBy}
+          />
+        {/snippet}
+      </FormField>
+
+      <FormField
+        id="sender-email"
+        label="Email shown under From"
+        description="Leave blank to use your account email."
+        error={$form.errors.sender_email}
+      >
+        {#snippet children({ describedBy })}
+          <TextInput
+            id="sender-email"
+            tone="purple"
+            type="email"
+            bind:value={$form.sender_email}
+            placeholder={($page.props.accountEmail as string) ||
+              "you@example.com"}
             aria-describedby={describedBy}
           />
         {/snippet}

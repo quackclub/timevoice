@@ -2,6 +2,9 @@ class Project < ApplicationRecord
   belongs_to :workspace
   belongs_to :client, optional: true
   has_many :time_entries, dependent: :nullify
+  has_many :activity_events, dependent: :delete_all
+
+  LIST_FIELDS = %i[github_repos hackatime_projects hackatime_catchall_projects cloudflare_workers vercel_projects].freeze
 
   validates :name, presence: true, uniqueness: { scope: :workspace_id }
   validates :color, presence: true, format: { with: /\A#[0-9A-Fa-f]{6}\z/ }
@@ -13,6 +16,16 @@ class Project < ApplicationRecord
 
   def self.default_color
     GRUVBOX_COLORS.sample
+  end
+
+  LIST_FIELDS.each do |field|
+    define_method("#{field}_list") do
+      self[field].to_s.split(/[\s,]+/).map(&:strip).reject(&:blank?).uniq
+    end
+  end
+
+  def activity_sources?
+    LIST_FIELDS.any? { |field| public_send("#{field}_list").any? }
   end
 
   def display_name

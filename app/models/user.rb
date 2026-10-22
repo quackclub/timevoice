@@ -4,6 +4,8 @@ class User < ApplicationRecord
   has_many :owned_workspaces, class_name: "Workspace", foreign_key: :owner_id, dependent: :nullify
   has_many :time_entries, dependent: :destroy
   has_many :sent_invites, class_name: "Invite", foreign_key: :inviter_id, dependent: :destroy
+  has_many :identities, dependent: :destroy
+  has_many :activity_events, dependent: :destroy
 
   belongs_to :last_used_workspace, class_name: "Workspace", optional: true
 
@@ -13,28 +15,58 @@ class User < ApplicationRecord
 
   validates :email, presence: true, uniqueness: true
   validates :name, presence: true
-  validates :google_uid, presence: true, uniqueness: true
 
   def self.from_omniauth(auth)
-    user = find_by(google_uid: auth.uid)
+    attrs = Identity.attributes_from_omniauth(auth)
+    identity = Identity.find_by(provider: auth.provider, uid: attrs[:uid])
+    email = auth.info.email.presence&.downcase
 
-    if user
-      user.update(
-        name: auth.info.name,
-        email: auth.info.email,
-        avatar_url: auth.info.image
-      )
-    else
-      user = create(
-        google_uid: auth.uid,
-        name: auth.info.name,
-        email: auth.info.email,
-        avatar_url: auth.info.image,
-        timezone: "UTC"
-      )
+    user = identity&.user
+    if user.nil? && email && (existing = find_by("lower(email) = ?", email))
+      raise EmailTakenError, "#{email} already has an account. Sign in with your original provider, then connect #{auth.provider} from settings." unless verified_email?(auth)
+      user = existing
+    end
+    raise ArgumentError, "Your #{auth.provider} account has no email address." if user.nil? && email.blank?
+    user ||= new(email: email, timezone: "UTC")
+    user.name = auth.info.name.presence || user.name.presence || email.to_s.split("@").first
+    user.avatar_url = auth.info.image if auth.info.image.present?
+    user.google_uid ||= attrs[:uid] if auth.provider == "google_oauth2"
+
+    transaction do
+      user.save!
+      identity ||= user.identities.find_or_initialize_by(provider: auth.provider)
+      identity.update!(attrs)
     end
 
     user
+  end
+
+  class EmailTakenError < StandardError; end
+
+  def self.verified_email?(auth)
+    case auth.provider
+    when "google_oauth2" then auth.extra&.raw_info&.dig("email_verified") != false
+    when "hackclub" then auth.extra&.raw_info&.dig("email_verified") == true
+    else false
+    end
+  end
+
+  def connect_identity!(auth)
+    attrs = Identity.attributes_from_omniauth(auth)
+    existing = Identity.find_by(provider: auth.provider, uid: attrs[:uid])
+    raise ActiveRecord::RecordNotUnique, "That #{auth.provider} account is linked to another user" if existing && existing.user_id != id
+
+    identity = identities.find_or_initialize_by(provider: auth.provider)
+    identity.update!(attrs)
+    identity
+  end
+
+  def identity_for(provider)
+    identities.find { |i| i.provider == provider.to_s }
+  end
+
+  def github_login
+    identity_for(:github)&.username || identity_for(:hackatime)&.username
   end
 
   def create_default_workspace

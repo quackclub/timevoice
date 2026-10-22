@@ -30,17 +30,20 @@
 
   let createForm = useForm({
     name: "",
+    manager: "",
     billing_address: "",
   });
 
   let editForm = useForm({
     name: "",
+    manager: "",
     billing_address: "",
   });
 
   function startEditing(client: Client) {
     editingId = client.id;
     $editForm.name = client.name;
+    $editForm.manager = client.manager || "";
     $editForm.billing_address = client.billing_address || "";
   }
 
@@ -111,6 +114,22 @@
       </FormField>
 
       <FormField
+        id="client-manager"
+        label="Manager"
+        description="Who the invoice is addressed to. Shown as “Attn:” under Bill To."
+      >
+        {#snippet children({ describedBy })}
+          <TextInput
+            id="client-manager"
+            tone="blue"
+            bind:value={$createForm.manager}
+            placeholder="Name or email"
+            aria-describedby={describedBy}
+          />
+        {/snippet}
+      </FormField>
+
+      <FormField
         id="billing-address"
         label="Billing Address"
         description="Line breaks will appear on invoices. Press Enter to create."
@@ -165,6 +184,18 @@ Country"
                 {/snippet}
               </FormField>
 
+              <FormField id="edit-manager-{client.id}" label="Manager">
+                {#snippet children({ describedBy })}
+                  <TextInput
+                    id="edit-manager-{client.id}"
+                    tone="blue"
+                    bind:value={$editForm.manager}
+                    placeholder="Name or email"
+                    aria-describedby={describedBy}
+                  />
+                {/snippet}
+              </FormField>
+
               <FormField id="edit-address-{client.id}" label="Billing Address">
                 {#snippet children({ describedBy })}
                   <TextArea
@@ -202,6 +233,9 @@ Country"
                 {client.name}
               {/snippet}
               {#snippet secondary()}
+                {#if client.manager}
+                  <span class="block">Attn: {client.manager}</span>
+                {/if}
                 {#if client.billing_address}
                   <span class="whitespace-pre-line">
                     {client.billing_address}

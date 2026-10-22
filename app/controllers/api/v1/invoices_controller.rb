@@ -86,7 +86,7 @@ module Api
           only: [ :id, :status, :total_cents, :period_start, :period_end, :issued_on ],
           methods: [ :hashid ],
           include: {
-            client: { only: [ :id, :name, :billing_address ] }
+            client: { only: [ :id, :name, :billing_address, :manager ] }
           }
         ).merge(
           total_amount: invoice.formatted_total,

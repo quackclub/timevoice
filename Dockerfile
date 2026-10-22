@@ -61,7 +61,10 @@ COPY . .
 RUN bundle exec bootsnap precompile -j 1 app/ lib/
 
 # Precompiling assets for production without requiring secret RAILS_MASTER_KEY
-RUN SECRET_KEY_BASE_DUMMY=1 ./bin/rails assets:precompile
+# Placeholder config so production initializers can boot; real values come from the runtime env.
+RUN SECRET_KEY_BASE_DUMMY=1 SITE_HOST=localhost DATABASE__NAME=build DATABASE__USERNAME=build DATABASE__PASSWORD=build \
+    CLOUDFLARE__TURNSTILE_SITE_KEY=build CLOUDFLARE__TURNSTILE_SECRET_KEY=build \
+    ACTIVE_RECORD_ENCRYPTION__PRIMARY_KEY=build ./bin/rails assets:precompile
 
 
 

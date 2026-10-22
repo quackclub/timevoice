@@ -15,6 +15,7 @@
     X,
     Plus,
     Workflow,
+    Activity,
   } from "lucide-svelte";
   import { useForm } from "@inertiajs/svelte";
   import Modal from "./Modal.svelte";
@@ -45,6 +46,7 @@
     { href: routes.projects.index, icon: FolderKanban, label: "Projects" },
     { href: routes.tags.index, icon: Tag, label: "Tags" },
     { href: routes.reports.index, icon: BarChart3, label: "Reports" },
+    { href: routes.activity.index, icon: Activity, label: "Activity" },
     { href: routes.invoices.index, icon: FileText, label: "Invoices" },
     { href: routes.settings.index, icon: Settings, label: "Settings" },
   ];

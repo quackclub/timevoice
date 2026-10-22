@@ -32,6 +32,9 @@
     getLastMonthRange,
   } from "../../lib/format";
   import { routes } from "../../lib/routes";
+  import InvoiceOptionsFields, {
+    type InvoiceOptions,
+  } from "../../components/invoice/InvoiceOptionsFields.svelte";
 
   type Client = {
     id: number;
@@ -95,6 +98,25 @@
     },
   );
 
+  const receiptKinds = ($page.props.receiptKinds as string[]) || [];
+  const optionDefaults = ($page.props.invoiceOptionDefaults as
+    InvoiceOptions | undefined) || {
+    layout: "detailed",
+    receipt_kinds: receiptKinds,
+    match: "entry",
+    show_activity_only_days: true,
+    reconciliation: false,
+  };
+
+  function freshOptions(): InvoiceOptions {
+    return {
+      ...optionDefaults,
+      receipt_kinds: [...optionDefaults.receipt_kinds],
+    };
+  }
+
+  let invoiceOptions = $state<InvoiceOptions>(freshOptions());
+
   let showCreateForm = $state(false);
   let expandedInvoiceId: number | null = $state(null);
   let showDeleteModal = $state(false);
@@ -147,12 +169,14 @@
         ...data,
         period_start: periodStartDate ? toDateString(periodStartDate) : "",
         period_end: periodEndDate ? toDateString(periodEndDate) : "",
+        options: { ...invoiceOptions },
       }))
       .post(routes.invoices.create(workspaceId), {
         onSuccess: () => {
           $createForm.reset();
           periodStartDate = null;
           periodEndDate = null;
+          invoiceOptions = freshOptions();
           showCreateForm = false;
         },
       });
@@ -352,6 +376,14 @@
               Last Month
             </ChipButton>
           </div>
+        </div>
+
+        <div class="mb-4 pt-4 border-t border-bg-tertiary">
+          <InvoiceOptionsFields
+            bind:options={invoiceOptions}
+            {receiptKinds}
+            idPrefix="create"
+          />
         </div>
 
         <div class="flex items-center justify-end gap-3">

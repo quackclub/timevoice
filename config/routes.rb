@@ -1,4 +1,6 @@
 Rails.application.routes.draw do
+  get "up" => "rails/health#show", as: :rails_health_check
+
   use_doorkeeper do
     controllers authorizations: "oauth/authorizations"
   end
@@ -39,8 +41,11 @@ Rails.application.routes.draw do
   get "/home", to: "marketing#home", as: :marketing_home
   get "/signin", to: "sessions#new", as: :signin
   delete "/signout", to: "sessions#destroy", as: :signout
-  get "/auth/google_oauth2/callback", to: "sessions#create"
+  get "/auth/:provider/callback", to: "sessions#create", constraints: { provider: /google_oauth2|github|hackclub|hackatime/ }
+  delete "/auth/:provider", to: "sessions#disconnect", as: :disconnect_identity
   get "/auth/failure", to: "sessions#failure"
+
+  get "/settings/import/callback", to: "timevoice_imports#callback", as: :timevoice_import_callback
 
   get "/invite/:token", to: "invites#show", as: :invite
   post "/invite/:token/accept", to: "invites#accept", as: :accept_invite
@@ -58,6 +63,12 @@ Rails.application.routes.draw do
     get "/settings/billing", to: "settings#billing"
     patch "/settings/billing", to: "settings#update_billing"
     get "/settings/developer", to: "oauth_applications#index", as: :settings_developer
+    get "/settings/integrations", to: "integrations#show", as: :settings_integrations
+    get "/settings/import", to: "timevoice_imports#show", as: :settings_import
+    post "/settings/import", to: "timevoice_imports#create"
+    post "/settings/integrations/:provider/connect", to: "integrations#connect", as: :connect_integration
+    get "/activity", to: "activity#index", as: :activity
+    post "/activity/sync", to: "activity#sync", as: :sync_activity
     resources :oauth_applications, only: [ :create, :update, :destroy ], path: "settings/developer/applications" do
       member do
         post :regenerate_secret
@@ -82,6 +93,7 @@ Rails.application.routes.draw do
         get :pdf
         get :csv
         post :send_email
+        post :refresh_activity
       end
     end
   end
@@ -91,6 +103,4 @@ Rails.application.routes.draw do
 
   root "marketing#home"
   get "/:workspace_id", to: "dashboard#index", constraints: { workspace_id: /[a-zA-Z0-9]+/ }
-
-  get "up" => "rails/health#show", as: :rails_health_check
 end

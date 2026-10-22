@@ -29,14 +29,14 @@
     <div
       class="flex flex-col sm:flex-row sm:items-center justify-between gap-3"
     >
-      <div class="flex items-center gap-3 min-w-0">
+      <div class="flex items-center gap-3 min-w-0 sm:shrink-0">
         {#if IconComponent}
           <IconComponent class="w-6 h-6 {iconColor}" aria-hidden="true" />
         {/if}
         <h2 class="text-xl sm:text-2xl font-semibold truncate">{title}</h2>
       </div>
       {#if headerActions}
-        <div class="flex items-center gap-2 sm:justify-end">
+        <div class="flex flex-wrap items-center gap-2 sm:justify-end">
           {@render headerActions()}
         </div>
       {/if}

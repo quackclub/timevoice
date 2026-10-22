@@ -65,17 +65,19 @@ class SettingsController < ApplicationController
     @invoice_settings = current_workspace.invoice_setting
 
     if @invoice_settings
-      settings_json = @invoice_settings.as_json(only: [ :id, :sender_name, :sender_address, :billable_rate_cents ])
+      settings_json = @invoice_settings.as_json(only: [ :id, :sender_name, :sender_email, :sender_address, :billable_rate_cents ])
     else
       settings_json = {
         sender_name: current_user.name,
+        sender_email: current_user.email,
         sender_address: "",
         billable_rate_cents: 0
       }
     end
 
     render inertia: "Settings/Billing", props: {
-      invoiceSettings: settings_json
+      invoiceSettings: settings_json,
+      accountEmail: current_user.email
     }
   end
 
@@ -97,7 +99,7 @@ class SettingsController < ApplicationController
   end
 
   def billing_params
-    optional_params(:setting, :sender_name, :sender_address, :billable_rate_cents)
+    optional_params(:setting, :sender_name, :sender_email, :sender_address, :billable_rate_cents)
   end
 
   def workspace_params
