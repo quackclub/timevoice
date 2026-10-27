@@ -35,6 +35,38 @@
     tag_ids: [] as number[],
     billable: false,
     files: [] as File[],
+    start_local: "",
+    end_local: "",
+  });
+
+  // <input type="datetime-local"> works in the browser's local time without an offset.
+  function toLocalInput(iso: string | null | undefined): string {
+    if (!iso) return "";
+    const d = new Date(iso);
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
+
+  let timeError = $derived.by(() => {
+    if (!$editForm.start_local) return "Start time is required.";
+    if (
+      $editForm.end_local &&
+      new Date($editForm.end_local) <= new Date($editForm.start_local)
+    )
+      return "End time must be after the start time.";
+    return "";
+  });
+
+  let durationPreview = $derived.by(() => {
+    if (!$editForm.start_local || !$editForm.end_local || timeError) return "";
+    const secs = Math.round(
+      (new Date($editForm.end_local).getTime() -
+        new Date($editForm.start_local).getTime()) /
+        1000,
+    );
+    const h = Math.floor(secs / 3600);
+    const m = Math.floor((secs % 3600) / 60);
+    return h ? `${h}h ${String(m).padStart(2, "0")}m` : `${m}m`;
   });
 
   let showDeleteModal = $state(false);
@@ -46,6 +78,8 @@
       $editForm.tag_ids = (entry.tags || []).map((t) => t.id);
       $editForm.billable = !!entry.billable;
       $editForm.files = [];
+      $editForm.start_local = toLocalInput(entry.start_at);
+      $editForm.end_local = toLocalInput(entry.end_at);
     }
   });
 
@@ -93,7 +127,7 @@
   }
 
   function saveEdit() {
-    if (!entry || !workspaceId) return;
+    if (!entry || !workspaceId || timeError) return;
 
     $editForm
       .transform((data) => {
@@ -101,6 +135,18 @@
         formData.append("time_entry[description]", data.description);
         formData.append("time_entry[project_id]", data.project_id);
         formData.append("time_entry[billable]", data.billable.toString());
+        if (data.start_local !== toLocalInput(entry?.start_at)) {
+          formData.append(
+            "time_entry[start_at]",
+            new Date(data.start_local).toISOString(),
+          );
+        }
+        if (entry?.end_at && data.end_local !== toLocalInput(entry.end_at)) {
+          formData.append(
+            "time_entry[end_at]",
+            new Date(data.end_local).toISOString(),
+          );
+        }
         data.tag_ids.forEach((id) => {
           formData.append("time_entry[tag_ids][]", id.toString());
         });
@@ -159,6 +205,42 @@
       {/snippet}
     </FormField>
   </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <FormField id="edit-start" label="Start">
+      {#snippet children({ describedBy })}
+        <TextInput
+          id="edit-start"
+          type="datetime-local"
+          bind:value={$editForm.start_local}
+          aria-describedby={describedBy}
+        />
+      {/snippet}
+    </FormField>
+    {#if entry?.end_at}
+      <FormField id="edit-end" label="End">
+        {#snippet children({ describedBy })}
+          <TextInput
+            id="edit-end"
+            type="datetime-local"
+            bind:value={$editForm.end_local}
+            aria-describedby={describedBy}
+          />
+        {/snippet}
+      </FormField>
+    {:else}
+      <div class="text-sm text-fg-muted self-end pb-2">
+        Timer running; stop it to set an end time.
+      </div>
+    {/if}
+  </div>
+  {#if timeError}
+    <p class="text-sm text-bright-red -mt-2" role="alert">{timeError}</p>
+  {:else if durationPreview}
+    <p class="text-sm text-fg-muted -mt-2">
+      Duration: {durationPreview}
+    </p>
+  {/if}
 
   <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
     <FormField id="edit-project" label="Project">
@@ -318,7 +400,7 @@
           tone="blue"
           type="button"
           onclick={saveEdit}
-          disabled={$editForm.processing}
+          disabled={$editForm.processing || !!timeError}
         >
           <Check class="w-4 h-4" aria-hidden="true" />
           {$editForm.processing ? "Saving..." : "Save"}

@@ -15,6 +15,7 @@ class TimeEntry < ApplicationRecord
   validates :start_at, presence: true
   validates :description, presence: true, if: :completed?
   validate :file_count_limit
+  validate :end_after_start
   validates :files, size: { less_than: 10.megabytes, message: "must be less than 10MB" }
 
   before_save :calculate_duration_seconds, if: :should_calculate_duration?
@@ -85,6 +86,10 @@ class TimeEntry < ApplicationRecord
   end
 
   private
+
+  def end_after_start
+    errors.add(:end_at, "must be after the start time") if end_at && start_at && end_at <= start_at
+  end
 
   def file_count_limit
     if files.attached? && files.count > MAX_FILES
