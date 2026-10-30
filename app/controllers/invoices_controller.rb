@@ -269,7 +269,7 @@ class InvoicesController < ApplicationController
   def invoice_options_params
     raw = params.dig(:invoice, :options)
     return {} unless raw.respond_to?(:permit)
-    raw.permit(:layout, :match, :show_activity_only_days, :reconciliation, receipt_kinds: []).to_h
+    raw.permit(:layout, :match, :reconciliation, receipt_kinds: []).to_h
   end
 
   def invoice_params

@@ -89,7 +89,6 @@
     layout: "detailed",
     receipt_kinds: [],
     match: "entry",
-    show_activity_only_days: true,
     reconciliation: false,
   });
 

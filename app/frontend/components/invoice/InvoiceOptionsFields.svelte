@@ -3,7 +3,6 @@
     layout: "simple" | "detailed";
     receipt_kinds: string[];
     match: "entry" | "day";
-    show_activity_only_days: boolean;
     reconciliation: boolean;
   };
 </script>
@@ -106,14 +105,6 @@
     </div>
 
     <div class="space-y-2">
-      <label class="flex items-center gap-2 text-sm">
-        <input
-          type="checkbox"
-          bind:checked={options.show_activity_only_days}
-          class="w-4 h-4 rounded border-bg-tertiary text-bright-purple focus:ring-bright-purple/50"
-        />
-        Show days with activity but no billed time
-      </label>
       <label class="flex items-center gap-2 text-sm">
         <input
           type="checkbox"

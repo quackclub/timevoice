@@ -27,7 +27,6 @@ class Invoice < ApplicationRecord
     "layout" => "simple",
     "receipt_kinds" => ActivityEvent::KINDS,
     "match" => "entry",
-    "show_activity_only_days" => true,
     "reconciliation" => false
   }.freeze
   LAYOUTS = %w[simple detailed].freeze
@@ -47,9 +46,7 @@ class Invoice < ApplicationRecord
 
   def self.normalize_options(raw)
     raw = raw.to_h.stringify_keys.slice(*OPTION_DEFAULTS.keys)
-    %w[show_activity_only_days reconciliation].each do |k|
-      raw[k] = ActiveModel::Type::Boolean.new.cast(raw[k]) if raw.key?(k)
-    end
+    raw["reconciliation"] = ActiveModel::Type::Boolean.new.cast(raw["reconciliation"]) if raw.key?("reconciliation")
     raw["receipt_kinds"] = Array(raw["receipt_kinds"]).map(&:to_s) & ActivityEvent::KINDS if raw.key?("receipt_kinds")
     raw
   end
@@ -82,6 +79,7 @@ class Invoice < ApplicationRecord
     scope.where(kind: settings["receipt_kinds"]).listable.chronological.to_a
   end
 
+  # Only days with billed time; activity on other days is not part of the invoice.
   def timeline_days
     lines = invoice_lines.includes(time_entry: :project).to_a
     entries = lines.filter_map(&:time_entry)
@@ -92,13 +90,14 @@ class Invoice < ApplicationRecord
       match: settings["match"],
       kinds: settings["receipt_kinds"]
     ).days(lines: lines.index_by(&:time_entry_id))
-    days = days.select { |d| d.entries.any? } unless settings["show_activity_only_days"]
-    days
+    days.select { |d| d.entries.any? }
   end
 
   def estimates
-    days = timeline_days
-    Activity::Presenter.estimates(activity_events, timezone: time_zone, billed_by_day: days.to_h { |d| [ d.date, d.billed_seconds ] })
+    billed_by_day = timeline_days.to_h { |d| [ d.date, d.billed_seconds ] }
+    zone = ActiveSupport::TimeZone[time_zone] || Time.zone
+    events = activity_events.select { |e| billed_by_day.key?(e.occurred_at.in_time_zone(zone).to_date) }
+    Activity::Presenter.estimates(events, timezone: time_zone, billed_by_day: billed_by_day)
   end
 
   def total_amount
