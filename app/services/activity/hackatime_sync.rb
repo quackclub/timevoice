@@ -20,6 +20,7 @@ module Activity
     MIN_BLOCK = 60
     REPLAY_AFTER = 1.day.to_i
     AGENT_SESSION = /\AClaude [0-9a-f-]{8,}\z/
+    AGENT_LABEL = "Claude Code session".freeze
 
     def initialize(project:, user:, from:, to:)
       @project = project
@@ -121,7 +122,7 @@ module Activity
     end
 
     def agent_session(entity)
-      "Claude Code session" if entity.match?(AGENT_SESSION)
+      AGENT_LABEL if entity.match?(AGENT_SESSION)
     end
 
     def catchall_match(entity)
@@ -161,7 +162,7 @@ module Activity
         cur[:count] += 1
         cur[:via] += 1 if item[:via]
         name = item[:file].to_s.split("/").last.to_s
-        cur[:files][name] += 1 if name.include?(".")
+        cur[:files][name] += 1 if name.include?(".") || name == AGENT_LABEL
       end
       blocks
     end
