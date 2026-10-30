@@ -27,7 +27,8 @@ class Invoice < ApplicationRecord
     "layout" => "simple",
     "receipt_kinds" => ActivityEvent::KINDS,
     "match" => "entry",
-    "reconciliation" => false
+    "reconciliation" => false,
+    "only_within_entries" => false
   }.freeze
   LAYOUTS = %w[simple detailed].freeze
   MATCHES = %w[entry day].freeze
@@ -46,7 +47,9 @@ class Invoice < ApplicationRecord
 
   def self.normalize_options(raw)
     raw = raw.to_h.stringify_keys.slice(*OPTION_DEFAULTS.keys)
-    raw["reconciliation"] = ActiveModel::Type::Boolean.new.cast(raw["reconciliation"]) if raw.key?("reconciliation")
+    %w[reconciliation only_within_entries].each do |k|
+      raw[k] = ActiveModel::Type::Boolean.new.cast(raw[k]) if raw.key?(k)
+    end
     raw["receipt_kinds"] = Array(raw["receipt_kinds"]).map(&:to_s) & ActivityEvent::KINDS if raw.key?("receipt_kinds")
     raw
   end
@@ -80,7 +83,8 @@ class Invoice < ApplicationRecord
   end
 
   # Only days with billed time; activity on other days is not part of the invoice. Hackatime coding
-  # outside the billed entries is left out because it has too many false positives.
+  # outside the billed entries is always left out because it has too many false positives, and
+  # only_within_entries leaves out git receipts and deploys outside them too.
   def timeline_days
     lines = invoice_lines.includes(time_entry: :project).to_a
     entries = lines.filter_map(&:time_entry)
@@ -89,10 +93,10 @@ class Invoice < ApplicationRecord
       events: activity_events,
       timezone: time_zone,
       match: settings["match"],
-      kinds: settings["receipt_kinds"]
+      kinds: settings["receipt_kinds"],
+      outside_kinds: settings["only_within_entries"] ? [] : ActivityEvent::KINDS - [ "coding" ]
     ).days(lines: lines.index_by(&:time_entry_id))
-    days = days.select { |d| d.entries.any? }
-    days.each { |d| d.events.reject! { |e| e.kind == "coding" } }
+    days.select { |d| d.entries.any? }
   end
 
   def estimates

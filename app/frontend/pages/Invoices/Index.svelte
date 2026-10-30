@@ -105,6 +105,7 @@
     receipt_kinds: receiptKinds,
     match: "entry",
     reconciliation: false,
+    only_within_entries: false,
   };
 
   function freshOptions(): InvoiceOptions {

@@ -90,6 +90,7 @@
     receipt_kinds: [],
     match: "entry",
     reconciliation: false,
+    only_within_entries: false,
   });
 
   function openOptions() {

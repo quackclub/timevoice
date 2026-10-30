@@ -4,6 +4,7 @@
     receipt_kinds: string[];
     match: "entry" | "day";
     reconciliation: boolean;
+    only_within_entries: boolean;
   };
 </script>
 
@@ -112,6 +113,14 @@
           class="w-4 h-4 rounded border-bg-tertiary text-bright-purple focus:ring-bright-purple/50"
         />
         Append time reconciliation page
+      </label>
+      <label class="flex items-center gap-2 text-sm">
+        <input
+          type="checkbox"
+          bind:checked={options.only_within_entries}
+          class="w-4 h-4 rounded border-bg-tertiary text-bright-purple focus:ring-bright-purple/50"
+        />
+        Only include activity during billed time entries
       </label>
     </div>
   {/if}

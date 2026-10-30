@@ -94,5 +94,9 @@ class InvoiceTest < ActiveSupport::TestCase
     estimates = invoice.estimates
     assert_equal [ "2026-03-01" ], estimates[:days].map { |d| d[:date] }
     assert_equal 600, estimates[:totals][:coded]
+
+    invoice.update!(options: invoice.options.merge("only_within_entries" => true))
+    assert_empty invoice.timeline_days.first.events
+    assert_includes invoice.timeline_days.first.entries.first.events, inside
   end
 end
