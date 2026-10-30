@@ -61,7 +61,7 @@ class InvoiceTest < ActiveSupport::TestCase
     assert_empty teammate_entry.reload.invoice_lines
   end
 
-  test "timeline and reconciliation leave out unbilled days and Hackatime coding outside billed entries" do
+  test "timeline keeps all activity on billed days only, and only_within_entries drops activity outside entries" do
     owner = User.create!(email: "days-owner@example.com", name: "Days Owner", google_uid: "days-owner-google-uid", timezone: "UTC")
     workspace = Workspace.create!(name: "Days Workspace", owner: owner)
     Membership.create!(workspace: workspace, user: owner, role: "owner")
@@ -78,7 +78,7 @@ class InvoiceTest < ActiveSupport::TestCase
     inside = ActivityEvent.create!(workspace: workspace, user: owner, project: project, kind: "coding", source: "hackatime",
       external_id: "billed-day-inside", occurred_at: Time.zone.parse("2026-03-01 09:10:00"),
       ended_at: Time.zone.parse("2026-03-01 09:20:00"), duration_seconds: 600, title: "coding")
-    ActivityEvent.create!(workspace: workspace, user: owner, project: project, kind: "coding", source: "hackatime",
+    outside = ActivityEvent.create!(workspace: workspace, user: owner, project: project, kind: "coding", source: "hackatime",
       external_id: "billed-day-outside", occurred_at: Time.zone.parse("2026-03-01 16:00:00"),
       ended_at: Time.zone.parse("2026-03-01 16:10:00"), duration_seconds: 600, title: "coding")
 
@@ -89,11 +89,11 @@ class InvoiceTest < ActiveSupport::TestCase
 
     days = invoice.timeline_days
     assert_equal [ Date.new(2026, 3, 1) ], days.map(&:date)
-    assert_equal [ pr ], days.first.events
+    assert_equal [ outside, pr ], days.first.events
     assert_includes days.first.entries.first.events, inside
     estimates = invoice.estimates
     assert_equal [ "2026-03-01" ], estimates[:days].map { |d| d[:date] }
-    assert_equal 600, estimates[:totals][:coded]
+    assert_equal 1200, estimates[:totals][:coded]
 
     invoice.update!(options: invoice.options.merge("only_within_entries" => true))
     assert_empty invoice.timeline_days.first.events

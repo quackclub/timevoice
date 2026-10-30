@@ -82,9 +82,8 @@ class Invoice < ApplicationRecord
     scope.where(kind: settings["receipt_kinds"]).listable.chronological.to_a
   end
 
-  # Only days with billed time; activity on other days is not part of the invoice. Hackatime coding
-  # outside the billed entries is always left out because it has too many false positives, and
-  # only_within_entries leaves out git receipts and deploys outside them too.
+  # Only days with billed time; activity on other days is not part of the invoice.
+  # only_within_entries also leaves out activity outside the billed entries on those days.
   def timeline_days
     lines = invoice_lines.includes(time_entry: :project).to_a
     entries = lines.filter_map(&:time_entry)
@@ -94,7 +93,7 @@ class Invoice < ApplicationRecord
       timezone: time_zone,
       match: settings["match"],
       kinds: settings["receipt_kinds"],
-      outside_kinds: settings["only_within_entries"] ? [] : ActivityEvent::KINDS - [ "coding" ]
+      outside_kinds: settings["only_within_entries"] ? [] : nil
     ).days(lines: lines.index_by(&:time_entry_id))
     days.select { |d| d.entries.any? }
   end
