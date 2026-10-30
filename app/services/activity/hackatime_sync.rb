@@ -20,7 +20,7 @@ module Activity
     MIN_BLOCK = 60
     REPLAY_AFTER = 1.day.to_i
     AGENT_SESSION = /\AClaude [0-9a-f-]{8,}\z/
-    AGENT_LABEL = "Claude Code session".freeze
+    AGENT_LABEL = "coding session".freeze
 
     def initialize(project:, user:, from:, to:)
       @project = project

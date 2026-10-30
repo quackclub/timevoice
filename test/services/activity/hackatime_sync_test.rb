@@ -26,7 +26,7 @@ class Activity::HackatimeSyncTest < ActiveSupport::TestCase
   end
 
   test "agent sessions count under named projects and replayed heartbeats are skipped" do
-    assert_equal "Claude Code session", @sync.send(:agent_session, "Claude 13b2df20-c4c2-41c3-8134-fba7d4d761a1")
+    assert_equal "coding session", @sync.send(:agent_session, "Claude 13b2df20-c4c2-41c3-8134-fba7d4d761a1")
     assert_nil @sync.send(:agent_session, "/home/me/projects/other/app.ts")
 
     at = Time.utc(2026, 10, 8, 18, 58)
