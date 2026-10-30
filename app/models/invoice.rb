@@ -79,8 +79,8 @@ class Invoice < ApplicationRecord
     scope.where(kind: settings["receipt_kinds"]).listable.chronological.to_a
   end
 
-  # Only days with billed time; activity on other days is not part of the invoice. Activity outside
-  # the billed entries is kept only when it certainly belongs to the project.
+  # Only days with billed time; activity on other days is not part of the invoice. Hackatime coding
+  # outside the billed entries is left out because it has too many false positives.
   def timeline_days
     lines = invoice_lines.includes(time_entry: :project).to_a
     entries = lines.filter_map(&:time_entry)
@@ -92,7 +92,7 @@ class Invoice < ApplicationRecord
       kinds: settings["receipt_kinds"]
     ).days(lines: lines.index_by(&:time_entry_id))
     days = days.select { |d| d.entries.any? }
-    days.each { |d| d.events.reject!(&:uncertain_project?) }
+    days.each { |d| d.events.reject! { |e| e.kind == "coding" } }
   end
 
   def estimates
