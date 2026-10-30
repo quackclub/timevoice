@@ -266,7 +266,6 @@ class InvoicePdf
         line = w.line
         row = [
           sanitize_text(line&.description || w.entry.description).to_s,
-          format_duration(w.entry.duration.to_i),
           line ? format("%.2f h", line.qty_hours || 0) : "",
           line ? format_currency(line.rate_cents) : "",
           line ? format_currency(line.amount_cents) : ""
@@ -277,8 +276,7 @@ class InvoicePdf
           t.cells.size = 9.5
           t.column(0).font_style = :bold
           t.column(0).padding = [ 4, 0, 2, 0 ]
-          t.columns(1..4).align = :right
-          t.column(1).text_color = TEXT_SECONDARY
+          t.columns(1..3).align = :right
         end
         @document.text "#{w.entry.start_at.in_time_zone(zone).strftime('%-I:%M %p')} – #{(w.entry.end_at || w.entry.start_at).in_time_zone(zone).strftime('%-I:%M %p')}#{w.entry.project ? " · #{sanitize_text(w.entry.project.name)}" : ''}",
           size: 7.5, color: TEXT_MUTED

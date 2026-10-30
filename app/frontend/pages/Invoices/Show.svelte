@@ -492,7 +492,7 @@
             {#each day.entries as entry (entry.id)}
               <div class="mb-2">
                 <div
-                  class="grid grid-cols-[1fr_auto] sm:grid-cols-[1fr_4rem_4.5rem_4.5rem_5rem] gap-x-3 items-baseline text-sm"
+                  class="grid grid-cols-[1fr_auto] sm:grid-cols-[1fr_4.5rem_4.5rem_5rem] gap-x-3 items-baseline text-sm"
                 >
                   <div class="min-w-0">
                     <span class="font-medium text-fg-primary"
@@ -517,10 +517,6 @@
                       >
                     </div>
                   </div>
-                  <span
-                    class="hidden sm:block text-right font-tabular text-fg-muted"
-                    >{formatClock(entry.duration_seconds)}</span
-                  >
                   <span class="hidden sm:block text-right font-tabular"
                     >{entry.qty_hours != null
                       ? `${Number(entry.qty_hours).toFixed(2)} h`
