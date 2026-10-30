@@ -68,8 +68,8 @@ module Activity
         chunk_end = [ day + 1.day, @to ].min
         data, = http.get("/api/v1/my/heartbeats", start_time: day.utc.iso8601, end_time: chunk_end.utc.iso8601)
         Array(data && data["heartbeats"]).each do |hb|
-          if names.include?(hb["project"])
-            out << { t: hb["time"].to_f, file: hb["entity"].to_s, via: false }
+          if names.include?(hb["project"]) && (rel = repo_path(hb["entity"].to_s))
+            out << { t: hb["time"].to_f, file: rel, via: false }
           elsif catchall.include?(hb["project"]) && (rel = catchall_match(hb["entity"].to_s))
             out << { t: hb["time"].to_f, file: rel, via: true }
           end
@@ -99,13 +99,17 @@ module Activity
       @repo_dirs ||= (@project.github_repos_list.map { |r| r.split("/").last } + @project.hackatime_projects_list).uniq
     end
 
-    def catchall_match(entity)
+    # Path of the file inside one of the project's folders, or nil. Hackatime's project name alone is not
+    # trusted: agents and editors can tag files from other folders with it.
+    def repo_path(entity)
       dirs = repo_dirs.map { |d| Regexp.escape(d) }.join("|")
       return nil if dirs.empty?
-      m = entity.match(%r{/(#{dirs})/(?:\.herdr/worktrees/[^/]+/)?(.+)\z})
-      return nil unless m
-      rel = m[2]
-      rel if repo_files.include?(rel)
+      entity.match(%r{/(?:#{dirs})/(?:\.herdr/worktrees/[^/]+/)?(.+)\z})&.[](1)
+    end
+
+    def catchall_match(entity)
+      rel = repo_path(entity)
+      rel if rel && repo_files.include?(rel)
     end
 
     def repo_files

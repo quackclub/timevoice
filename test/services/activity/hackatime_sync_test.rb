@@ -19,6 +19,12 @@ class Activity::HackatimeSyncTest < ActiveSupport::TestCase
       @sync.send(:catchall_match, "/home/me/projects/slacker-news/.herdr/worktrees/slacker-news/src/components/SlackRichText.astro")
   end
 
+  test "heartbeats count only when the file sits in one of the project's folders" do
+    assert_equal "anything/new.rb", @sync.send(:repo_path, "/home/me/projects/slacker-news/anything/new.rb")
+    assert_nil @sync.send(:repo_path, "/home/me/.claude/projects/-home-me-projects-x/memory/notes.md")
+    assert_nil @sync.send(:repo_path, "/home/me/projects/timevoice/app/services/estimator.rb")
+  end
+
   test "blocks split after 15 idle minutes and cap each gap at 2 minutes" do
     hbs = [ 0, 60, 600, 600 + 16 * 60 ].map { |t| { t: t.to_f, file: "a.rb", via: false } }
     blocks = @sync.send(:build_blocks, hbs)
