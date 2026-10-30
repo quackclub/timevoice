@@ -61,7 +61,7 @@ class InvoiceTest < ActiveSupport::TestCase
     assert_empty teammate_entry.reload.invoice_lines
   end
 
-  test "timeline and reconciliation leave out days without billed time" do
+  test "timeline and reconciliation leave out unbilled days and uncertain coding outside billed entries" do
     owner = User.create!(email: "days-owner@example.com", name: "Days Owner", google_uid: "days-owner-google-uid", timezone: "UTC")
     workspace = Workspace.create!(name: "Days Workspace", owner: owner)
     Membership.create!(workspace: workspace, user: owner, role: "owner")
@@ -75,11 +75,20 @@ class InvoiceTest < ActiveSupport::TestCase
       external_id: "unbilled-day", occurred_at: Time.zone.parse("2026-03-02 09:00:00"),
       ended_at: Time.zone.parse("2026-03-02 10:00:00"), duration_seconds: 3600, title: "coding")
 
+    named = ActivityEvent.create!(workspace: workspace, user: owner, project: project, kind: "coding", source: "hackatime",
+      external_id: "billed-day-named", occurred_at: Time.zone.parse("2026-03-01 14:00:00"),
+      ended_at: Time.zone.parse("2026-03-01 14:10:00"), duration_seconds: 600, title: "coding", metadata: { via_catchall: 0 })
+    ActivityEvent.create!(workspace: workspace, user: owner, project: project, kind: "coding", source: "hackatime",
+      external_id: "billed-day-catchall", occurred_at: Time.zone.parse("2026-03-01 16:00:00"),
+      ended_at: Time.zone.parse("2026-03-01 16:10:00"), duration_seconds: 600, title: "coding", metadata: { via_catchall: 3 })
+
     invoice = Invoice.generate_from_time_entries(workspace, client, Date.new(2026, 3, 1), Date.new(2026, 3, 3), 10_000, owner)
 
-    assert_equal [ Date.new(2026, 3, 1) ], invoice.timeline_days.map(&:date)
+    days = invoice.timeline_days
+    assert_equal [ Date.new(2026, 3, 1) ], days.map(&:date)
+    assert_equal [ named ], days.first.events
     estimates = invoice.estimates
     assert_equal [ "2026-03-01" ], estimates[:days].map { |d| d[:date] }
-    assert_equal 0, estimates[:totals][:coded]
+    assert_equal 600, estimates[:totals][:coded]
   end
 end

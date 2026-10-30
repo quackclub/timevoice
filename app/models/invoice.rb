@@ -79,7 +79,8 @@ class Invoice < ApplicationRecord
     scope.where(kind: settings["receipt_kinds"]).listable.chronological.to_a
   end
 
-  # Only days with billed time; activity on other days is not part of the invoice.
+  # Only days with billed time; activity on other days is not part of the invoice. Activity outside
+  # the billed entries is kept only when it certainly belongs to the project.
   def timeline_days
     lines = invoice_lines.includes(time_entry: :project).to_a
     entries = lines.filter_map(&:time_entry)
@@ -90,14 +91,14 @@ class Invoice < ApplicationRecord
       match: settings["match"],
       kinds: settings["receipt_kinds"]
     ).days(lines: lines.index_by(&:time_entry_id))
-    days.select { |d| d.entries.any? }
+    days = days.select { |d| d.entries.any? }
+    days.each { |d| d.events.reject!(&:uncertain_project?) }
   end
 
   def estimates
-    billed_by_day = timeline_days.to_h { |d| [ d.date, d.billed_seconds ] }
-    zone = ActiveSupport::TimeZone[time_zone] || Time.zone
-    events = activity_events.select { |e| billed_by_day.key?(e.occurred_at.in_time_zone(zone).to_date) }
-    Activity::Presenter.estimates(events, timezone: time_zone, billed_by_day: billed_by_day)
+    days = timeline_days
+    events = days.flat_map { |d| d.events + d.entries.flat_map(&:events) }
+    Activity::Presenter.estimates(events, timezone: time_zone, billed_by_day: days.to_h { |d| [ d.date, d.billed_seconds ] })
   end
 
   def total_amount

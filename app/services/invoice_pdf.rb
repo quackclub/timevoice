@@ -287,7 +287,6 @@ class InvoicePdf
 
       if day.events.any?
         @document.move_down 2
-        @document.text(day.entries.any? ? "Other activity this day" : "Activity (not billed)", size: 7.5, color: TEXT_MUTED, style: :bold)
         receipts(day.events)
       end
     end

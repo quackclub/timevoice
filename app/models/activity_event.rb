@@ -19,6 +19,11 @@ class ActivityEvent < ApplicationRecord
     kind != "coding" || duration_seconds.to_i >= MIN_CODING_SECONDS
   end
 
+  # Coding blocks matched from a catch-all Hackatime project by file name may belong to another project.
+  def uncertain_project?
+    kind == "coding" && ![ nil, false, 0 ].include?(metadata&.dig("via_catchall"))
+  end
+
   def short_ref
     return ref.to_s[0, 6] if kind.in?(%w[commit main merge deploy])
     ref

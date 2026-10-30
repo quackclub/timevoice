@@ -543,11 +543,6 @@
 
             {#if day.events.length}
               <div class="mt-2">
-                <div class="text-xs font-semibold text-fg-muted mb-1">
-                  {day.entries.length
-                    ? "Other activity this day"
-                    : "Activity (not billed)"}
-                </div>
                 <ReceiptList events={day.events} {timezone} />
               </div>
             {/if}
