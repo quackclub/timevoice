@@ -25,6 +25,16 @@ class Activity::HackatimeSyncTest < ActiveSupport::TestCase
     assert_nil @sync.send(:repo_path, "/home/me/projects/timevoice/app/services/estimator.rb")
   end
 
+  test "agent sessions count under named projects and replayed heartbeats are skipped" do
+    assert_equal "Claude Code session", @sync.send(:agent_session, "Claude 13b2df20-c4c2-41c3-8134-fba7d4d761a1")
+    assert_nil @sync.send(:agent_session, "/home/me/projects/other/app.ts")
+
+    at = Time.utc(2026, 10, 8, 18, 58)
+    assert_not @sync.send(:replayed?, { "time" => at.to_f, "created_at" => (at + 70).iso8601 })
+    assert @sync.send(:replayed?, { "time" => at.to_f, "created_at" => (at + 3.days).iso8601 })
+    assert_not @sync.send(:replayed?, { "time" => at.to_f })
+  end
+
   test "blocks split after 15 idle minutes and cap each gap at 2 minutes" do
     hbs = [ 0, 60, 600, 600 + 16 * 60 ].map { |t| { t: t.to_f, file: "a.rb", via: false } }
     blocks = @sync.send(:build_blocks, hbs)

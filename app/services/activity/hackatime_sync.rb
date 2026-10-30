@@ -1,10 +1,14 @@
 module Activity
   # Turns Hackatime heartbeats into coding blocks for one project.
   #
-  # Heartbeats under the project's Hackatime project names always count.
+  # Heartbeats under the project's Hackatime project names count when the file sits in one of the
+  # project's folders, or when they come from an AI agent session (entity "Claude <session id>"),
+  # which Hackatime tags with the session's project when it is sent.
   # Heartbeats under a catch-all project (e.g. "projects", a parent folder) count only when the
   # file path runs through a folder named after one of the project's repos and that file exists
   # in the repo on GitHub.
+  # Heartbeats uploaded more than REPLAY_AFTER after they happened are skipped: agent plugins
+  # re-send old activity days later, tagged with whatever project is current at upload time.
   #
   # Auth, in order: the user's Hackatime OAuth connection (read scope), the server's
   # HACKATIME_API_KEY when HACKATIME_API_KEY_EMAIL matches the user, then public spans
@@ -14,6 +18,8 @@ module Activity
     BLOCK_GAP = 15.minutes.to_i
     HEARTBEAT_TIMEOUT = 2.minutes.to_i
     MIN_BLOCK = 60
+    REPLAY_AFTER = 1.day.to_i
+    AGENT_SESSION = /\AClaude [0-9a-f-]{8,}\z/
 
     def initialize(project:, user:, from:, to:)
       @project = project
@@ -68,9 +74,11 @@ module Activity
         chunk_end = [ day + 1.day, @to ].min
         data, = http.get("/api/v1/my/heartbeats", start_time: day.utc.iso8601, end_time: chunk_end.utc.iso8601)
         Array(data && data["heartbeats"]).each do |hb|
-          if names.include?(hb["project"]) && (rel = repo_path(hb["entity"].to_s))
+          next if replayed?(hb)
+          entity = hb["entity"].to_s
+          if names.include?(hb["project"]) && (rel = repo_path(entity) || agent_session(entity))
             out << { t: hb["time"].to_f, file: rel, via: false }
-          elsif catchall.include?(hb["project"]) && (rel = catchall_match(hb["entity"].to_s))
+          elsif catchall.include?(hb["project"]) && (rel = catchall_match(entity))
             out << { t: hb["time"].to_f, file: rel, via: true }
           end
         end
@@ -105,6 +113,15 @@ module Activity
       dirs = repo_dirs.map { |d| Regexp.escape(d) }.join("|")
       return nil if dirs.empty?
       entity.match(%r{/(?:#{dirs})/(?:\.herdr/worktrees/[^/]+/)?(.+)\z})&.[](1)
+    end
+
+    def replayed?(hb)
+      created = hb["created_at"].presence && Time.zone.parse(hb["created_at"])
+      created.present? && created.to_f - hb["time"].to_f > REPLAY_AFTER
+    end
+
+    def agent_session(entity)
+      "Claude Code session" if entity.match?(AGENT_SESSION)
     end
 
     def catchall_match(entity)
