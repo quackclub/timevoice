@@ -48,7 +48,7 @@ module Activity
         next if block[:secs] < MIN_BLOCK
         recorder.record(kind: "coding", external_id: "coding:#{@user.id}:#{block[:start].to_i}",
           occurred_at: Time.zone.at(block[:start]), ended_at: Time.zone.at(block[:end]),
-          duration_seconds: block[:secs].round, title: "Coding",
+          duration_seconds: block[:secs].round, title: block[:files].keys == [ AGENT_LABEL ] ? ActivityEvent::SESSION_TITLE : "Coding",
           metadata: { heartbeats: block[:count], via_catchall: block[:via], top_files: block[:files].sort_by { -_2 }.first(3).map(&:first) })
       end
       recorder.count

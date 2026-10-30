@@ -3,6 +3,10 @@ class ActivityEvent < ApplicationRecord
   RECEIPT_KINDS = %w[commit main merge pr reviewed branch deploy].freeze
   # Shorter coding blocks are blips (a couple of heartbeats), not work worth listing.
   MIN_CODING_SECONDS = 4.minutes.to_i
+  # Coding blocks made only of AI agent heartbeats are short (one heartbeat per action), so they
+  # get a lower minimum.
+  SESSION_TITLE = "Coding session".freeze
+  MIN_SESSION_SECONDS = 1.minute.to_i
 
   belongs_to :workspace
   belongs_to :user
@@ -13,10 +17,13 @@ class ActivityEvent < ApplicationRecord
 
   scope :between, ->(from, to) { where(occurred_at: from..to) }
   scope :chronological, -> { order(:occurred_at, :id) }
-  scope :listable, -> { where.not(kind: "coding").or(where(duration_seconds: MIN_CODING_SECONDS..)) }
+  scope :listable, -> {
+    where.not(kind: "coding").or(where(duration_seconds: MIN_CODING_SECONDS..))
+      .or(where(kind: "coding", title: SESSION_TITLE, duration_seconds: MIN_SESSION_SECONDS..))
+  }
 
   def listable?
-    kind != "coding" || duration_seconds.to_i >= MIN_CODING_SECONDS
+    kind != "coding" || duration_seconds.to_i >= (title == SESSION_TITLE ? MIN_SESSION_SECONDS : MIN_CODING_SECONDS)
   end
 
   def short_ref

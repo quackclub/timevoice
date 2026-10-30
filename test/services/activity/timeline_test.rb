@@ -32,6 +32,16 @@ class Activity::TimelineTest < ActiveSupport::TestCase
     assert_equal [ inside ], days.first.events
   end
 
+  test "short agent coding sessions are listed but short editor blocks are not" do
+    session = ActivityEvent.create!(workspace: @workspace, user: @user, project: @project, kind: "coding", source: "hackatime",
+      external_id: "session", occurred_at: Time.utc(2026, 9, 11, 18, 10), duration_seconds: 200, title: ActivityEvent::SESSION_TITLE)
+    editor = ActivityEvent.create!(workspace: @workspace, user: @user, project: @project, kind: "coding", source: "hackatime",
+      external_id: "editor", occurred_at: Time.utc(2026, 9, 11, 18, 20), duration_seconds: 200, title: "Coding")
+
+    assert_equal [ session ], ActivityEvent.where(id: [ session.id, editor.id ]).listable.to_a
+    assert_equal [ session ], Activity::Timeline.new(entries: [ @entry ], events: [ session, editor ], timezone: "UTC").days.first.entries.first.events
+  end
+
   test "kinds filter drops unselected receipts" do
     branch = event("branch", Time.utc(2026, 9, 12, 10))
     days = Activity::Timeline.new(entries: [ @entry ], events: [ branch ], timezone: "UTC", kinds: %w[commit]).days
